@@ -69,4 +69,19 @@ const payload={id,title:$('title').value.trim(),episode_no:Number($('episode').v
 const ins=await sb.from('episodes').insert(payload);if(ins.error){await sb.storage.from(BUCKET).remove([videoPath,...(coverPath?[coverPath]:[])]);return msg('uploadStatus','Metadata gagal disimpan: '+ins.error.message)}msg('uploadStatus','Berhasil dikirim. Status MENUNGGU persetujuan admin.');e.target.reset()});
 async function loadMine(){if(!sb||!user){$('mine').innerHTML='<div class="empty">Masuk untuk melihat kirimanmu.</div>';return}const {data,error}=await sb.from('episodes').select('id,title,episode_no,status,moderation_note,created_at').eq('creator_id',user.id).order('created_at',{ascending:false});$('mine').innerHTML='';if(error){$('mine').textContent=error.message;return}if(!data.length){$('mine').innerHTML='<div class="empty">Belum ada kiriman.</div>';return}data.forEach(x=>{const d=document.createElement('div');d.className='status';d.textContent=x.title+' · Ep '+x.episode_no+' · '+x.status.toUpperCase()+(x.moderation_note?' · Catatan: '+x.moderation_note:'');$('mine').append(d)})}
 init();
-</script></body></html>
+</script><section id="drama-otomatis" style="padding:15px;background:#101018;color:white;">
+  <h2>DRAMA KITA</h2>
+  <h3>Drama China Sub Indo</h3>
+
+  <div style="background:#222;padding:10px;border-radius:10px;">
+    <iframe
+      width="100%"
+      height="220"
+      src="https://www.youtube-nocookie.com/embed/AHnnEDTNmVo"
+      title="Drama China"
+      frameborder="0"
+      allowfullscreen>
+    </iframe>
+    <p>Drama China pilihan</p>
+  </div>
+</section></body></html>
