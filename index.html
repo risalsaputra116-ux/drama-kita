@@ -16,7 +16,14 @@
  <div class="hero"><small>KREATOR INDONESIA</small><h1>Cerita singkat.<br>Keseruan tanpa batas.</h1><p class="muted">Tonton drama yang sudah lolos moderasi atau bagikan karya milikmu.</p><button class="btn" onclick="go('account')">Gabung sebagai kreator</button></div>
  <input id="q" class="search" placeholder="Cari judul atau kreator..." oninput="loadFeed()">
  <div class="chips" id="cats"></div><h3 id="feedTitle">Drama terbaru</h3><div id="feed" class="grid"></div>
-</section>
+<h3>Drama China Sub Indo</h3>
+
+<div style="background:#222;padding:10px;border-radius:10px;">
+  <button onclick="playYoutube('AHnnEDTNmVo')" style="border:0;background:none;color:white;width:100%;text-align:left;">
+    <img src="https://img.youtube.com/vi/AHnnEDTNmVo/hqdefault.jpg" style="width:100%;border-radius:10px;">
+    <p>Drama China pilihan ▶</p>
+  </button>
+</div></section>
 <section id="account" class="view">
  <h2>Akun kreator</h2><p class="hint">Daftar atau masuk dengan email. Konfirmasi email mungkin perlu dilakukan sesuai pengaturan proyek Supabase.</p>
  <label class="field">Email<input id="email" type="email" autocomplete="email" placeholder="nama@email.com"></label>
@@ -68,20 +75,14 @@ $('uploadForm').addEventListener('submit',async e=>{e.preventDefault();if(!sb||!
 const payload={id,title:$('title').value.trim(),episode_no:Number($('episode').value),category:$('category').value,description:$('description').value.trim(),creator_id:user.id,video_path:videoPath,cover_path:coverPath,status:'pending',rights_confirmed:true};
 const ins=await sb.from('episodes').insert(payload);if(ins.error){await sb.storage.from(BUCKET).remove([videoPath,...(coverPath?[coverPath]:[])]);return msg('uploadStatus','Metadata gagal disimpan: '+ins.error.message)}msg('uploadStatus','Berhasil dikirim. Status MENUNGGU persetujuan admin.');e.target.reset()});
 async function loadMine(){if(!sb||!user){$('mine').innerHTML='<div class="empty">Masuk untuk melihat kirimanmu.</div>';return}const {data,error}=await sb.from('episodes').select('id,title,episode_no,status,moderation_note,created_at').eq('creator_id',user.id).order('created_at',{ascending:false});$('mine').innerHTML='';if(error){$('mine').textContent=error.message;return}if(!data.length){$('mine').innerHTML='<div class="empty">Belum ada kiriman.</div>';return}data.forEach(x=>{const d=document.createElement('div');d.className='status';d.textContent=x.title+' · Ep '+x.episode_no+' · '+x.status.toUpperCase()+(x.moderation_note?' · Catatan: '+x.moderation_note:'');$('mine').append(d)})}
+function playYoutube(id){
+  document.getElementById('watchTitle').textContent='Drama China Sub Indo';
+  document.getElementById('watchMeta').textContent='Drama pilihan dari YouTube';
+  document.getElementById('watchDesc').textContent='';
+  document.getElementById('videoArea').innerHTML=
+    '<iframe width="100%" height="250" src="https://www.youtube-nocookie.com/embed/'+id+'" allowfullscreen></iframe>';
+  document.getElementById('watch').classList.add('open');
+}
 init();
-</script><section id="drama-otomatis" style="padding:15px;background:#101018;color:white;">
-  <h2>DRAMA KITA</h2>
-  <h3>Drama China Sub Indo</h3>
+ </script></body></html>
 
-  <div style="background:#222;padding:10px;border-radius:10px;">
-    <iframe
-      width="100%"
-      height="220"
-      src="https://www.youtube-nocookie.com/embed/AHnnEDTNmVo"
-      title="Drama China"
-      frameborder="0"
-      allowfullscreen>
-    </iframe>
-    <p>Drama China pilihan</p>
-  </div>
-</section></body></html>
