@@ -613,7 +613,7 @@ function playYoutube(id){
 
   const {data,error}=await sb
     .from('reward_withdrawals')
-    .select('amount,payment_method,account_number,account_name,status,created_at')
+    .select('id,amount,payment_method,account_number,account_name,status,created_at')
     .order('created_at',{ascending:false});
 
   if(error){
@@ -629,16 +629,54 @@ function playYoutube(id){
   }
 
   data.forEach(x=>{
-    const item=document.createElement('div');
-    item.className='status';
-    item.textContent=
-      'Rp'+Number(x.amount).toLocaleString('id-ID')+
-      ' · '+x.payment_method+
-      ' · '+x.account_name+
-      ' · '+x.account_number+
-      ' · Status: '+x.status;
-    box.append(item);
+  const item=document.createElement('div');
+  item.className='status';
+
+  const info=document.createElement('p');
+  info.textContent=
+    'Rp'+Number(x.amount).toLocaleString('id-ID')+
+    ' · '+x.payment_method+
+    ' · '+x.account_name+
+    ' · '+x.account_number+
+    ' · Status: '+x.status;
+
+  item.append(info);
+
+  if(x.status==='pending'){
+    const approve=document.createElement('button');
+    approve.className='btn';
+    approve.textContent='Setujui';
+    approve.onclick=()=>processWithdrawal(x.id,'approved');
+
+    const reject=document.createElement('button');
+    reject.className='btn';
+    reject.textContent='Tolak';
+    reject.onclick=()=>processWithdrawal(x.id,'rejected');
+
+    item.append(approve,reject);
+  }
+   
+  box.append(item);
+});
+}async function processWithdrawal(id,status){
+  const action=status==='approved'?'menyetujui':'menolak';
+
+  if(!confirm('Yakin ingin '+action+' pengajuan penarikan ini?')){
+    return;
+  }
+
+  const {error}=await sb.rpc('admin_update_withdrawal',{
+    p_withdrawal_id:id,
+    p_status:status
   });
+
+  if(error){
+    alert('Gagal memproses: '+error.message);
+    return;
+  }
+
+  alert('Pengajuan berhasil diproses.');
+  loadAdminWithdrawals();
 }
 init();
  </script></body></html>
