@@ -362,20 +362,32 @@ async function play(x){
     $('videoArea').textContent='Video tidak dapat dimuat.';
   }else{
     const v=document.createElement('video');
-
     v.src=data.signedUrl;
     v.controls=true;
     v.playsInline=true;
     v.autoplay=true;
 
+    let watchedSeconds=0;
+    let lastTime=0;
     let rewardRecorded=false;
 
+    v.addEventListener('seeking',()=>{
+      lastTime=v.currentTime;
+    });
+
     v.addEventListener('timeupdate',async()=>{
-      if(rewardRecorded||v.currentTime<10)return;
+      if(v.paused||v.seeking||rewardRecorded)return;
+
+      const delta=v.currentTime-lastTime;
+      lastTime=v.currentTime;
+
+      if(delta>0&&delta<=1.5){
+        watchedSeconds+=delta;
+      }
+
+      if(watchedSeconds<10||!user)return;
 
       rewardRecorded=true;
-
-      if(!user)return;
 
       const {data,error}=await sb.rpc(
         'record_episode_view',
@@ -386,6 +398,7 @@ async function play(x){
         console.warn('Reward view:',error.message);
       }else if(data===true){
         console.log('Penayangan valid tercatat.');
+        await loadRewards();
       }
     });
 
