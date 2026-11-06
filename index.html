@@ -230,11 +230,10 @@ function updateAuthUI(){
     : 'Masuk terlebih dahulu untuk mengunggah drama.';
 
   if(user){
-    if(user){
-  checkAdminAccess();
-  loadProfile();
-  loadRewards();
-}else{
+    checkAdminAccess();
+    loadProfile();
+    loadRewards();
+  }else{
     $('adminNav').style.display = 'none';
     $('profileName').textContent = '-';
     $('profileUsername').textContent = '-';
@@ -558,6 +557,88 @@ function playYoutube(id){
   document.getElementById('videoArea').innerHTML=
     '<iframe width="100%" height="250" src="https://www.youtube-nocookie.com/embed/'+id+'" allowfullscreen></iframe>';
   document.getElementById('watch').classList.add('open');
+}function closeWatch(){
+  $('watch').classList.remove('open');
+  $('videoArea').innerHTML = '';
+  currentDrama = null;
+ }async function loadAdminCreators(){
+  if(!sb || !user)return alert('Silakan login dahulu.');
+
+  const {data:admin,error:authError}=await sb.rpc('is_admin');
+
+  if(authError || admin!==true){
+    return alert('Akses khusus admin.');
+  }
+
+  const box=$('adminCreators');
+  box.textContent='Memuat daftar kreator...';
+
+  const {data,error}=await sb
+    .from('profiles')
+    .select('display_name,username,role,created_at')
+    .order('created_at',{ascending:false});
+
+  if(error){
+    box.textContent='Gagal memuat kreator: '+error.message;
+    return;
+  }
+
+  box.innerHTML='';
+
+  if(!data.length){
+    box.textContent='Belum ada kreator.';
+    return;
+  }
+
+  data.forEach(x=>{
+    const item=document.createElement('div');
+    item.className='status';
+    item.textContent=
+      (x.display_name||'Tanpa nama')+
+      ' · @'+(x.username||'-')+
+      ' · '+(x.role||'creator');
+    box.append(item);
+  });
+}async function loadAdminWithdrawals(){
+  if(!sb || !user)return alert('Silakan login dahulu.');
+
+  const {data:admin,error:authError}=await sb.rpc('is_admin');
+
+  if(authError || admin!==true){
+    return alert('Akses khusus admin.');
+  }
+
+  const box=$('adminWithdrawals');
+  box.textContent='Memuat pengajuan penarikan...';
+
+  const {data,error}=await sb
+    .from('reward_withdrawals')
+    .select('amount,payment_method,account_number,account_name,status,created_at')
+    .order('created_at',{ascending:false});
+
+  if(error){
+    box.textContent='Gagal memuat penarikan: '+error.message;
+    return;
+  }
+
+  box.innerHTML='';
+
+  if(!data.length){
+    box.textContent='Belum ada pengajuan penarikan.';
+    return;
+  }
+
+  data.forEach(x=>{
+    const item=document.createElement('div');
+    item.className='status';
+    item.textContent=
+      'Rp'+Number(x.amount).toLocaleString('id-ID')+
+      ' · '+x.payment_method+
+      ' · '+x.account_name+
+      ' · '+x.account_number+
+      ' · Status: '+x.status;
+    box.append(item);
+  });
 }
 init();
  </script></body></html>
