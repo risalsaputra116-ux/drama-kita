@@ -180,7 +180,34 @@ let sb=null,user=null,activeCategory='Semua',currentDrama=null;
 const categories=['Semua','Romantis','Komedi','Horor','Drama keluarga','Aksi','Thriller','Inspirasi'];
 const $=id=>document.getElementById(id);
 function esc(s=''){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function go(v){document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));$(v).classList.add('active');document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x.dataset.v===v));if(v==='creator')loadMine();if(v==='upload')updateAuthUI();window.scrollTo(0,0)}
+function go(v){
+  const target = $(v);
+
+  if(!target){
+    alert('Bagian '+v+' tidak ditemukan.');
+    return;
+  }
+
+  document.querySelectorAll('.view').forEach(x=>{
+    x.classList.remove('active');
+  });
+
+  target.classList.add('active');
+
+  document.querySelectorAll('nav button').forEach(x=>{
+    x.classList.toggle('active',x.dataset.v===v);
+  });
+
+  if(v==='creator')loadMine();
+  if(v==='upload')updateAuthUI();
+  if(v==='admin'){
+    loadAdminEpisodes();
+    loadAdminCreators();
+    loadAdminWithdrawals();
+  }
+
+  window.scrollTo(0,0);
+ }
 function msg(id,s){$(id).textContent=s}
 function initCats(){$('cats').innerHTML=categories.map(c=>`<button class="chip ${c===activeCategory?'active':''}" data-cat="${c}">${c}</button>`).join('');$('cats').querySelectorAll('button').forEach(b=>b.onclick=()=>{activeCategory=b.dataset.cat;initCats();loadFeed()})}
 function configured(){return SUPABASE_URL.startsWith('https://')&&!SUPABASE_URL.includes('PASTE_')&&SUPABASE_ANON_KEY.length>20&&!SUPABASE_ANON_KEY.includes('PASTE_')}
