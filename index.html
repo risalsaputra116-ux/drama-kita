@@ -122,32 +122,17 @@ style="width:120px;height:120px;object-fit:cover;border-radius:50%;display:block
  <div class="notice">Setiap upload berstatus MENUNGGU. Drama baru tampil setelah admin menyetujuinya. Batas ukuran file harus diatur di Storage Supabase.</div>
  <button class="btn" type="submit">Kirim untuk moderasi</button></form><div id="uploadStatus" class="status"></div>
 </section>
-<section id="creator" class="view"><h2>Studio kreator</h2><p class="hint">Status kiriman dan laporan konten milikmu.</p><div id="mine"></div></section><section id="admin" class="view">
-  <h2>👑 Panel Pemilik DRAMA KITA</h2>
-  <p class="hint">Pusat pengelolaan aplikasi.</p>
+<section id="creator" class="view">
+  <h2>Studio kreator</h2>
+  <p class="hint">Status kiriman dan laporan konten milikmu.</p>
+  <div id="mine"></div>
 
   <div class="status">
-    <h3>🎬 Persetujuan Episode</h3>
-    <button class="btn" onclick="loadAdminEpisodes()">
-      Muat Episode
+    <h3>📜 Riwayat Penarikan</h3>
+    <button class="btn" onclick="loadMyWithdrawals()">
+      Muat Riwayat
     </button>
-    <div id="adminEpisodes">Belum dimuat.</div>
-  </div>
-
-  <div class="status">
-    <h3>👥 Daftar Kreator</h3>
-    <button class="btn" onclick="loadAdminCreators()">
-      Muat Kreator
-    </button>
-    <div id="adminCreators">Belum dimuat.</div>
-  </div>
-
-  <div class="status">
-    <h3>💸 Pengajuan Penarikan</h3>
-    <button class="btn" onclick="loadAdminWithdrawals()">
-      Muat Penarikan
-    </button>
-    <div id="adminWithdrawals">Belum dimuat.</div>
+    <div id="myWithdrawals">Belum dimuat.</div>
   </div>
 </section>
 </main>
@@ -677,6 +662,45 @@ function playYoutube(id){
 
   alert('Pengajuan berhasil diproses.');
   loadAdminWithdrawals();
+}async function loadMyWithdrawals(){
+  if(!sb || !user){
+    return alert('Silakan login dahulu.');
+  }
+
+  const box=$('myWithdrawals');
+  box.textContent='Memuat riwayat penarikan...';
+
+  const {data,error}=await sb
+    .from('reward_withdrawals')
+    .select('amount,payment_method,account_name,status,created_at')
+    .eq('creator_id',user.id)
+    .order('created_at',{ascending:false});
+
+  if(error){
+    box.textContent='Gagal memuat riwayat: '+error.message;
+    return;
+  }
+
+  box.innerHTML='';
+
+  if(!data.length){
+    box.textContent='Belum ada riwayat penarikan.';
+    return;
+  }
+
+  data.forEach(x=>{
+    const item=document.createElement('div');
+    item.className='status';
+
+    item.textContent=
+      'Rp'+Number(x.amount).toLocaleString('id-ID')+
+      ' · '+x.payment_method+
+      ' · '+x.account_name+
+      ' · Status: '+x.status+
+      ' · '+new Date(x.created_at).toLocaleDateString('id-ID');
+
+    box.append(item);
+  });
 }
 init();
  </script></body></html>
