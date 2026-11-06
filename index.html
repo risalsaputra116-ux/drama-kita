@@ -67,6 +67,43 @@ style="width:120px;height:120px;object-fit:cover;border-radius:50%;display:block
   <button class="btn" onclick="loadRewards()">Perbarui Saldo</button>
   <h4>Riwayat Reward</h4>
   <div id="rewardHistory">Belum ada reward.</div>
+ <hr style="border-color:#ffffff22;margin:18px 0;">
+
+<h3>💸 Tarik Saldo</h3>
+
+<label class="field">
+  Jumlah penarikan (minimal Rp50.000)
+  <input id="withdrawAmount" type="number" min="50000"
+  placeholder="Contoh: 50000">
+</label>
+
+<label class="field">
+  Metode pembayaran
+  <select id="withdrawMethod">
+    <option value="DANA">DANA</option>
+    <option value="OVO">OVO</option>
+    <option value="GoPay">GoPay</option>
+    <option value="Bank Transfer">Transfer Bank</option>
+  </select>
+</label>
+
+<label class="field">
+  Nomor rekening / nomor e-wallet
+  <input id="withdrawAccount" type="text"
+  placeholder="Masukkan nomor tujuan">
+</label>
+
+<label class="field">
+  Nama pemilik rekening
+  <input id="withdrawName" type="text"
+  placeholder="Nama sesuai rekening">
+</label>
+
+<button class="btn" onclick="requestWithdrawal()">
+  Ajukan Penarikan
+</button>
+
+<div id="withdrawStatus" class="status"></div>
 </div>
 <p class="hint">
   Jangan bagikan password atau kunci rahasia Supabase.
