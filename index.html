@@ -122,9 +122,39 @@ style="width:120px;height:120px;object-fit:cover;border-radius:50%;display:block
  <div class="notice">Setiap upload berstatus MENUNGGU. Drama baru tampil setelah admin menyetujuinya. Batas ukuran file harus diatur di Storage Supabase.</div>
  <button class="btn" type="submit">Kirim untuk moderasi</button></form><div id="uploadStatus" class="status"></div>
 </section>
-<section id="creator" class="view"><h2>Studio kreator</h2><p class="hint">Status kiriman dan laporan konten milikmu.</p><div id="mine"></div></section>
+<section id="creator" class="view"><h2>Studio kreator</h2><p class="hint">Status kiriman dan laporan konten milikmu.</p><div id="mine"></div></section><section id="admin" class="view">
+  <h2>👑 Panel Pemilik DRAMA KITA</h2>
+  <p class="hint">Pusat pengelolaan aplikasi.</p>
+
+  <div class="status">
+    <h3>🎬 Persetujuan Episode</h3>
+    <button class="btn" onclick="loadAdminEpisodes()">
+      Muat Episode
+    </button>
+    <div id="adminEpisodes">Belum dimuat.</div>
+  </div>
+
+  <div class="status">
+    <h3>👥 Daftar Kreator</h3>
+    <button class="btn" onclick="loadAdminCreators()">
+      Muat Kreator
+    </button>
+    <div id="adminCreators">Belum dimuat.</div>
+  </div>
+
+  <div class="status">
+    <h3>💸 Pengajuan Penarikan</h3>
+    <button class="btn" onclick="loadAdminWithdrawals()">
+      Muat Penarikan
+    </button>
+    <div id="adminWithdrawals">Belum dimuat.</div>
+  </div>
+</section>
 </main>
-<nav><button class="active" data-v="home" onclick="go('home')"><b>⌂</b>Beranda</button><button data-v="upload" onclick="go('upload')"><b>＋</b>Upload</button><button data-v="creator" onclick="go('creator')"><b>▣</b>Studio</button><button data-v="account" onclick="go('account')"><b>◉</b>Akun</button></nav>
+<nav><button class="active" data-v="home" onclick="go('home')"><b>⌂</b>Beranda</button><button data-v="upload" onclick="go('upload')"><b>＋</b>Upload</button><button data-v="creator" onclick="go('creator')"><b>▣</b>Studio</button><button id="adminNav" data-v="admin"
+onclick="go('admin')" style="display:none">
+<b>👑</b>Admin
+</button><button data-v="account" onclick="go('account')"><b>◉</b>Akun</button></nav>
 <div id="watch" class="modal" onclick="if(event.target===this)closeWatch()"><div class="sheet"><div class="row" style="justify-content:space-between"><strong id="watchTitle">Drama</strong><button class="btn alt" onclick="closeWatch()">Tutup</button></div><div class="video" id="videoArea"></div><p id="watchMeta" class="hint"></p><p id="watchDesc"></p>
 </div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -200,14 +230,123 @@ function updateAuthUI(){
     : 'Masuk terlebih dahulu untuk mengunggah drama.';
 
   if(user){
-    loadProfile();
-    loadRewards();
-  }else{
+    if(user){
+  checkAdminAccess();
+  loadProfile();
+  loadRewards();
+}else{
+    $('adminNav').style.display = 'none';
     $('profileName').textContent = '-';
     $('profileUsername').textContent = '-';
   }
 }
+async function checkAdminAccess(){
+  const nav = $('adminNav');
 
+  nav.style.display = 'none';
+
+  if(!sb || !user)return;
+
+  const {data,error} = await sb
+    .from('profiles')
+    .select('role')
+    .eq('id',user.id)
+    .single();
+
+  if(!error && data?.role === 'admin'){
+    nav.style.display = '';
+  }
+ }
+ async function loadAdminEpisodes(){
+  if(!sb || !user)return alert('Silakan login dahulu.');
+
+  const {data:admin,error:authError} =
+    await sb.rpc('is_admin');
+
+  if(authError || admin !== true){
+    return alert('Akses khusus admin.');
+  }
+
+  const box = $('adminEpisodes');
+  box.textContent = 'Memuat episode...';
+
+  const {data,error} = await sb
+    .from('episodes')
+    .select('id,title,episode_no,category,created_at')
+    .eq('status','pending')
+    .order('created_at',{ascending:false});
+
+  if(error){
+    box.textContent = 'Gagal memuat: ' + error.message;
+    return;
+  }
+
+  box.innerHTML = '';
+
+  if(!data.length){
+    box.textContent = 'Belum ada episode menunggu persetujuan.';
+    return;
+  }
+
+  data.forEach(x=>{
+    const item = document.createElement('div');
+    item.className = 'status';
+
+    const title = document.createElement('strong');
+    title.textContent = x.title + ' · Episode ' + x.episode_no;
+
+    const info = document.createElement('p');
+    info.textContent = x.category;
+
+    const approve = document.createElement('button');
+    approve.className = 'btn';
+    approve.textContent = 'Setujui';
+    approve.onclick = ()=>moderateEpisode(x.id,'approved');
+
+    const reject = document.createElement('button');
+    reject.className = 'btn danger';
+    reject.textContent = 'Tolak';
+    reject.onclick = ()=>moderateEpisode(x.id,'rejected');
+
+    item.append(title,info,approve,reject);
+    box.append(item);
+  });
+}
+
+async function moderateEpisode(id,status){
+  const {data:admin,error:authError} =
+    await sb.rpc('is_admin');
+
+  if(authError || admin !== true){
+    return alert('Akses khusus admin.');
+  }
+
+  let note = '';
+
+  if(status === 'rejected'){
+    note = prompt('Alasan penolakan episode:');
+    if(!note)return;
+  }
+
+  const {error} = await sb
+    .from('episodes')
+    .update({
+      status:status,
+      moderation_note:note || null
+    })
+    .eq('id',id);
+
+  if(error){
+    return alert('Gagal memperbarui episode: ' + error.message);
+  }
+
+  alert(status === 'approved'
+    ? 'Episode berhasil disetujui.'
+    : 'Episode berhasil ditolak.');
+
+  await loadAdminEpisodes();
+  await loadFeed();
+}
 async function loadProfile(){
   if(!sb || !user)return;
 
