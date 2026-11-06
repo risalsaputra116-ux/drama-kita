@@ -29,7 +29,17 @@
     ▶ Tonton Drama China
   </button>
 </div></section>
-<section id="account" class="view">
+<section id="account" class="view"><label class="field">
+  Nama lengkap
+  <input id="displayName" type="text" maxlength="40"
+    placeholder="Nama kamu">
+</label>
+
+<label class="field">
+  Username
+  <input id="username" type="text" maxlength="20"
+    placeholder="Contoh: risal123">
+</label>
  <label class="field">Email<input id="email" type="email" autocomplete="email" placeholder="nama@email.com"></label>
  <label class="field">Password<input id="password" type="password" autocomplete="current-password" minlength="8" placeholder="Minimal 8 karakter"></label>
  <div class="row"><button class="btn" onclick="auth('signup')">Daftar</button><button class="btn alt" onclick="auth('login')">Masuk</button><button class="btn alt" onclick="logout()">Keluar</button></div>
@@ -73,10 +83,49 @@ async function auth(mode){
 
   const email=$('email').value.trim();
   const password=$('password').value;
+  const username=$('username').value.trim().toLowerCase();
+  const displayName=$('displayName').value.trim();
 
   if(!email||password.length<8){
     return msg('accountStatus','Masukkan email valid dan password minimal 8 karakter.');
   }
+
+  if(mode==='signup'){
+    if(!/^[a-z0-9_]{3,20}$/.test(username)){
+      return msg('accountStatus','Username harus 3-20 karakter, hanya huruf kecil, angka, dan garis bawah.');
+    }
+
+    if(!displayName){
+      return msg('accountStatus','Masukkan nama lengkap.');
+    }
+  }
+
+  const r=mode==='signup'
+    ? await sb.auth.signUp({
+        email,
+        password,
+        options:{
+          data:{
+            username,
+            display_name:displayName
+          }
+        }
+      })
+    : await sb.auth.signInWithPassword({email,password});
+
+  if(r.error){
+    return msg('accountStatus',r.error.message);
+  }
+
+  if(mode==='login'&&r.data.session){
+    user=r.data.user;
+    updateAuthUI();
+    msg('accountStatus','Berhasil masuk.');
+    go('account');
+  }else{
+    msg('accountStatus','Pendaftaran berhasil dikirim. Periksa email jika konfirmasi diaktifkan.');
+  }
+}
 
   const r=mode==='signup'
     ? await sb.auth.signUp({email,password})
