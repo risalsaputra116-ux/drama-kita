@@ -72,9 +72,9 @@ style="width:120px;height:120px;object-fit:cover;border-radius:50%;display:block
 <h3>💸 Tarik Saldo</h3>
 
 <label class="field">
-  Jumlah penarikan (minimal Rp50.000)
-  <input id="withdrawAmount" type="number" min="50000"
-  placeholder="Contoh: 50000">
+  Jumlah penarikan (minimal Rp10.000)
+  <input id="withdrawAmount" type="number" min="10000"
+  placeholder="Contoh: 10000">
 </label>
 
 <label class="field">
@@ -227,7 +227,53 @@ async function loadProfile(){
   $('profileAvatar').src = r.data.avatar_url ||
     'https://placehold.co/120x120?text=Foto';
  }
- async function loadRewards(){async function requestWithdrawal(){
+ 
+async function loadRewards(){
+  if(!sb || !user)return;
+
+  const [rewards, withdrawals] = await Promise.all([
+    sb.from('creator_rewards')
+      .select('amount,reward_type,description,created_at')
+      .eq('creator_id',user.id)
+      .order('created_at',{ascending:false}),
+
+    sb.from('reward_withdrawals')
+      .select('amount,status,created_at')
+      .eq('creator_id',user.id)
+  ]);
+
+  if(rewards.error){
+    $('rewardHistory').textContent='Gagal memuat reward: '+rewards.error.message;
+    return;
+  }
+
+  if(withdrawals.error){
+    $('rewardHistory').textContent='Gagal memuat penarikan: '+withdrawals.error.message;
+    return;
+  }
+
+  const totalReward = rewards.data.reduce(
+    (sum,item)=>sum+Number(item.amount),0
+  );
+
+  const totalWithdrawn = withdrawals.data
+    .filter(item=>['pending','approved','paid'].includes(item.status))
+    .reduce((sum,item)=>sum+Number(item.amount),0);
+
+  const available = Math.max(0,totalReward-totalWithdrawn);
+
+  $('rewardBalance').textContent =
+    'Rp'+available.toLocaleString('id-ID');
+
+  $('rewardHistory').innerHTML = rewards.data.length
+    ? rewards.data.map(item =>
+        '<div class="status">Rp'+Number(item.amount).toLocaleString('id-ID')+
+        ' · '+esc(item.reward_type || 'Reward')+
+        '<br>'+esc(item.description || '')+'</div>'
+      ).join('')
+    : 'Belum ada reward.';
+}
+async function requestWithdrawal(){
   if(!user)return alert('Silakan login dahulu.');
 
   const amount = Number($('withdrawAmount').value);
@@ -235,8 +281,8 @@ async function loadProfile(){
   const account = $('withdrawAccount').value.trim();
   const name = $('withdrawName').value.trim();
 
-  if(!Number.isInteger(amount) || amount < 50000)
-    return msg('withdrawStatus','Minimal penarikan Rp50.000.');
+  if(!Number.isInteger(amount) || amount < 10000)
+    return msg('withdrawStatus','Minimal penarikan Rp10.000.');
 
   if(!account || !name)
     return msg('withdrawStatus','Lengkapi nomor dan nama pemilik rekening.');
@@ -258,33 +304,7 @@ async function loadProfile(){
   $('withdrawAccount').value='';
   $('withdrawName').value='';
   await loadRewards();
- }
-  if(!sb || !user)return;
-
-  const r = await sb
-    .from('creator_rewards')
-    .select('amount,reward_type,description,created_at')
-    .eq('creator_id',user.id)
-    .order('created_at',{ascending:false});
-
-  if(r.error){
-    $('rewardHistory').textContent='Gagal memuat reward: '+r.error.message;
-    return;
-  }
-
-  const total = r.data.reduce((sum,item)=>sum+Number(item.amount),0);
-
-  $('rewardBalance').textContent =
-    'Rp'+total.toLocaleString('id-ID');
-
-  $('rewardHistory').innerHTML = r.data.length
-    ? r.data.map(item =>
-        '<div class="status">Rp'+Number(item.amount).toLocaleString('id-ID')+
-        ' · '+esc(item.reward_type || 'Reward')+
-        '<br>'+esc(item.description || '')+'</div>'
-      ).join('')
-    : 'Belum ada reward.';
- }
+}
  async function uploadAvatar(){
   if(!user)return alert('Silakan login dahulu.');
 
