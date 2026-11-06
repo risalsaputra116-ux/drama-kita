@@ -227,7 +227,38 @@ async function loadProfile(){
   $('profileAvatar').src = r.data.avatar_url ||
     'https://placehold.co/120x120?text=Foto';
  }
- async function loadRewards(){
+ async function loadRewards(){async function requestWithdrawal(){
+  if(!user)return alert('Silakan login dahulu.');
+
+  const amount = Number($('withdrawAmount').value);
+  const method = $('withdrawMethod').value;
+  const account = $('withdrawAccount').value.trim();
+  const name = $('withdrawName').value.trim();
+
+  if(!Number.isInteger(amount) || amount < 50000)
+    return msg('withdrawStatus','Minimal penarikan Rp50.000.');
+
+  if(!account || !name)
+    return msg('withdrawStatus','Lengkapi nomor dan nama pemilik rekening.');
+
+  msg('withdrawStatus','Mengirim pengajuan...');
+
+  const {data,error} = await sb.rpc('request_creator_withdrawal',{
+    p_amount:amount,
+    p_payment_method:method,
+    p_account_number:account,
+    p_account_name:name
+  });
+
+  if(error)
+    return msg('withdrawStatus','Pengajuan gagal: '+error.message);
+
+  msg('withdrawStatus','Pengajuan berhasil dikirim. Menunggu pemeriksaan admin.');
+  $('withdrawAmount').value='';
+  $('withdrawAccount').value='';
+  $('withdrawName').value='';
+  await loadRewards();
+ }
   if(!sb || !user)return;
 
   const r = await sb
