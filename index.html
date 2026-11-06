@@ -135,6 +135,34 @@ style="width:120px;height:120px;object-fit:cover;border-radius:50%;display:block
     <div id="myWithdrawals">Belum dimuat.</div>
   </div>
 </section>
+ <section id="admin" class="view">
+  <h2>👑 Panel Pemilik DRAMA KITA</h2>
+  <p class="hint">Pusat pengelolaan aplikasi.</p>
+
+  <div class="status">
+    <h3>🎬 Persetujuan Episode</h3>
+    <button class="btn" onclick="loadAdminEpisodes()">
+      Muat Episode
+    </button>
+    <div id="adminEpisodes">Belum dimuat.</div>
+  </div>
+
+  <div class="status">
+    <h3>👥 Daftar Kreator</h3>
+    <button class="btn" onclick="loadAdminCreators()">
+      Muat Kreator
+    </button>
+    <div id="adminCreators">Belum dimuat.</div>
+  </div>
+
+  <div class="status">
+    <h3>💸 Pengajuan Penarikan</h3>
+    <button class="btn" onclick="loadAdminWithdrawals()">
+      Muat Penarikan
+    </button>
+    <div id="adminWithdrawals">Belum dimuat.</div>
+  </div>
+</section>
 </main>
 <nav><button class="active" data-v="home" onclick="go('home')"><b>⌂</b>Beranda</button><button data-v="upload" onclick="go('upload')"><b>＋</b>Upload</button><button data-v="creator" onclick="go('creator')"><b>▣</b>Studio</button><button id="adminNav" data-v="admin"
 onclick="go('admin')" style="display:none">
