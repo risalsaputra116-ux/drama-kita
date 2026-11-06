@@ -43,8 +43,18 @@
  <label class="field">Email<input id="email" type="email" autocomplete="email" placeholder="nama@email.com"></label>
  <label class="field">Password<input id="password" type="password" autocomplete="current-password" minlength="8" placeholder="Minimal 8 karakter"></label>
  <div class="row"><button class="btn" onclick="auth('signup')">Daftar</button><button class="btn alt" onclick="auth('login')">Masuk</button><button class="btn alt" onclick="logout()">Keluar</button></div>
- <div id="accountStatus" class="status">Belum masuk.</div><p class="hint">Jangan bagikan password atau kunci rahasia Supabase. Aplikasi hanya menggunakan anon/publishable key.</p>
-</section>
+ <div id="accountStatus" class="status">Belum masuk.</div>
+
+<div id="profileInfo" style="background:#222;padding:15px;border-radius:12px;margin-top:15px;">
+  <h3>Profil Saya</h3>
+  <p>Nama: <span id="profileName">-</span></p>
+  <p>Username: <span id="profileUsername">-</span></p>
+</div>
+
+<p class="hint">
+  Jangan bagikan password atau kunci rahasia Supabase.
+  Aplikasi hanya menggunakan anon/publishable key.
+</p></section>
 <section id="upload" class="view">
  <h2>Upload episode</h2><div id="uploadAuth" class="notice">Masuk terlebih dahulu untuk mengunggah drama.</div>
  <form id="uploadForm">
@@ -62,6 +72,7 @@
 </main>
 <nav><button class="active" data-v="home" onclick="go('home')"><b>⌂</b>Beranda</button><button data-v="upload" onclick="go('upload')"><b>＋</b>Upload</button><button data-v="creator" onclick="go('creator')"><b>▣</b>Studio</button><button data-v="account" onclick="go('account')"><b>◉</b>Akun</button></nav>
 <div id="watch" class="modal" onclick="if(event.target===this)closeWatch()"><div class="sheet"><div class="row" style="justify-content:space-between"><strong id="watchTitle">Drama</strong><button class="btn alt" onclick="closeWatch()">Tutup</button></div><div class="video" id="videoArea"></div><p id="watchMeta" class="hint"></p><p id="watchDesc"></p>
+</div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* SETUP: isi dua nilai ini dari Supabase Project Settings > API. Jangan pernah masukkan service_role key. */
@@ -127,25 +138,38 @@ async function auth(mode){
   }
 }
 
-  const r=mode==='signup'
-    ? await sb.auth.signUp({email,password})
-    : await sb.auth.signInWithPassword({email,password});
+  
+async function logout(){if(sb)await sb.auth.signOut();user=null;updateAuthUI();msg('accountStatus','Kamu sudah keluar.')}
+function updateAuthUI(){
+  $('uploadAuth').textContent = user
+    ? 'Masuk sebagai ' + user.email
+    : 'Masuk terlebih dahulu untuk mengunggah drama.';
+
+  if(user){
+    loadProfile();
+  }else{
+    $('profileName').textContent = '-';
+    $('profileUsername').textContent = '-';
+  }
+}
+
+async function loadProfile(){
+  if(!sb || !user)return;
+
+  const r = await sb
+    .from('profiles')
+    .select('display_name,username')
+    .eq('id',user.id)
+    .single();
 
   if(r.error){
-    return msg('accountStatus',r.error.message);
+    console.log('Gagal memuat profil:',r.error.message);
+    return;
   }
 
-  if(mode==='login'&&r.data.session){
-    user=r.data.user;
-    updateAuthUI();
-    msg('accountStatus','Berhasil masuk.');
-    go('account');
-  }else{
-    msg('accountStatus','Pendaftaran dikirim. Periksa email jika konfirmasi diaktifkan.');
-  }
- }
-async function logout(){if(sb)await sb.auth.signOut();user=null;updateAuthUI();msg('accountStatus','Kamu sudah keluar.')}
-function updateAuthUI(){$('uploadAuth').textContent=user?'Masuk sebagai '+user.email:'Masuk terlebih dahulu untuk mengunggah drama.'}
+  $('profileName').textContent = r.data.display_name || '-';
+  $('profileUsername').textContent = '@' + (r.data.username || '-');
+}
 async function loadFeed(){if(!sb)return;const q=$('q').value.trim();let query=sb.from('episodes').select('id,title,episode_no,category,description,creator_id,video_path,cover_path,created_at,profiles(display_name)').eq('status','approved').order('created_at',{ascending:false}).limit(60);if(activeCategory!=='Semua')query=query.eq('category',activeCategory);if(q)query=query.ilike('title','%'+q.replace(/[%_,]/g,'')+'%');const {data,error}=await query;if(error){$('feed').innerHTML='<div class="empty">Gagal memuat drama. Periksa SQL dan kebijakan akses.</div>';return}const grid=$('feed');grid.innerHTML='';if(!data.length){grid.innerHTML='<div class="empty" style="grid-column:1/-1">Belum ada drama yang disetujui.</div>';return}for(const x of data){const card=document.createElement('article');card.className='card';const cover=document.createElement('div');cover.className='cover';cover.textContent='🎬';if(x.cover_path){const {data:u}=await sb.storage.from(BUCKET).createSignedUrl(x.cover_path,3600);if(u?.signedUrl){const img=document.createElement('img');img.src=u.signedUrl;cover.textContent='';cover.append(img)}}const info=document.createElement('div');info.className='info';const title=document.createElement('strong');title.textContent=x.title;const small=document.createElement('small');small.textContent=(x.profiles?.display_name||'Kreator')+' · '+x.category+' · Ep '+x.episode_no;const desc=document.createElement('p');desc.textContent=x.description||'';info.append(title,small,desc);card.append(cover,info);card.onclick=()=>play(x);grid.append(card)}}
 async function play(x){currentDrama=x;$('watchTitle').textContent=x.title;$('watchMeta').textContent=(x.profiles?.display_name||'Kreator')+' · '+x.category+' · Episode '+x.episode_no;$('watchDesc').textContent=x.description||'';$('videoArea').innerHTML='Memuat video...';const {data,error}=await sb.storage.from(BUCKET).createSignedUrl(x.video_path,3600);if(error||!data?.signedUrl){$('videoArea').textContent='Video tidak dapat dimuat.'}else{const v=document.createElement('video');v.src=data.signedUrl;v.controls=true;v.playsInline=true;v.autoplay=true;$('videoArea').replaceChildren(v)}$('watch').classList.add('open')}
 function closeWatch(){$('watch').classList.remove('open');$('videoArea').innerHTML=''}
