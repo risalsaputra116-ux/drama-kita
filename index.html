@@ -60,7 +60,14 @@ style="width:120px;height:120px;object-fit:cover;border-radius:50%;display:block
   <p>Nama: <span id="profileName">-</span></p>
   <p>Username: <span id="profileUsername">-</span></p>
 </div>
-
+<div id="rewardInfo" style="background:#29243a;padding:15px;border-radius:12px;margin-top:15px;">
+  <h3>💰 Reward Kreator</h3>
+  <h2 id="rewardBalance" style="color:#ff79a0;">Rp0</h2>
+  <p class="hint">Total reward yang tercatat di akunmu.</p>
+  <button class="btn" onclick="loadRewards()">Perbarui Saldo</button>
+  <h4>Riwayat Reward</h4>
+  <div id="rewardHistory">Belum ada reward.</div>
+</div>
 <p class="hint">
   Jangan bagikan password atau kunci rahasia Supabase.
   Aplikasi hanya menggunakan anon/publishable key.
