@@ -164,6 +164,7 @@ function updateAuthUI(){
 
   if(user){
     loadProfile();
+    loadRewards();
   }else{
     $('profileName').textContent = '-';
     $('profileUsername').textContent = '-';
@@ -188,6 +189,33 @@ async function loadProfile(){
 
   $('profileAvatar').src = r.data.avatar_url ||
     'https://placehold.co/120x120?text=Foto';
+ }
+ async function loadRewards(){
+  if(!sb || !user)return;
+
+  const r = await sb
+    .from('creator_rewards')
+    .select('amount,reward_type,description,created_at')
+    .eq('creator_id',user.id)
+    .order('created_at',{ascending:false});
+
+  if(r.error){
+    $('rewardHistory').textContent='Gagal memuat reward: '+r.error.message;
+    return;
+  }
+
+  const total = r.data.reduce((sum,item)=>sum+Number(item.amount),0);
+
+  $('rewardBalance').textContent =
+    'Rp'+total.toLocaleString('id-ID');
+
+  $('rewardHistory').innerHTML = r.data.length
+    ? r.data.map(item =>
+        '<div class="status">Rp'+Number(item.amount).toLocaleString('id-ID')+
+        ' · '+esc(item.reward_type || 'Reward')+
+        '<br>'+esc(item.description || '')+'</div>'
+      ).join('')
+    : 'Belum ada reward.';
  }
  async function uploadAvatar(){
   if(!user)return alert('Silakan login dahulu.');
