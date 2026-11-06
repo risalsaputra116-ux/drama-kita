@@ -139,13 +139,7 @@ style="width:120px;height:120px;object-fit:cover;border-radius:50%;display:block
   <h2>👑 Panel Pemilik DRAMA KITA</h2>
   <p class="hint">Pusat pengelolaan aplikasi.</p>
 
-  <div class="status">
-    <h3>🎬 Persetujuan Episode</h3>
-    <button class="btn" onclick="loadAdminEpisodes()">
-      Muat Episode
-    </button>
-    <div id="adminEpisodes">Belum dimuat.</div>
-  </div>
+ 
 
   <div class="status">
     <h3>👥 Daftar Kreator</h3>
@@ -201,7 +195,6 @@ function go(v){
   if(v==='creator')loadMine();
   if(v==='upload')updateAuthUI();
   if(v==='admin'){
-    loadAdminEpisodes();
     loadAdminCreators();
     loadAdminWithdrawals();
   }
@@ -352,40 +345,6 @@ async function checkAdminAccess(){
   });
 }
 
-async function moderateEpisode(id,status){
-  const {data:admin,error:authError} =
-    await sb.rpc('is_admin');
-
-  if(authError || admin !== true){
-    return alert('Akses khusus admin.');
-  }
-
-  let note = '';
-
-  if(status === 'rejected'){
-    note = prompt('Alasan penolakan episode:');
-    if(!note)return;
-  }
-
-  const {error} = await sb
-    .from('episodes')
-    .update({
-      status:status,
-      moderation_note:note || null
-    })
-    .eq('id',id);
-
-  if(error){
-    return alert('Gagal memperbarui episode: ' + error.message);
-  }
-
-  alert(status === 'approved'
-    ? 'Episode berhasil disetujui.'
-    : 'Episode berhasil ditolak.');
-
-  await loadAdminEpisodes();
-  await loadFeed();
-}
 async function loadProfile(){
   if(!sb || !user)return;
 
