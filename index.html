@@ -618,10 +618,7 @@ async function loadFeed(){
     const small=document.createElement('small');
     small.textContent=(x.profiles?.display_name||'Kreator')+' · '+x.category+' · '+group.episodes.length+' episode';
 
-    const desc=document.createElement('p');
-    desc.textContent=x.description||'';
-
-    info.append(title,small,desc);
+    info.append(title,small);
     card.append(cover,info);
 
     card.onclick=()=>openSeries(group);
