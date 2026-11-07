@@ -632,7 +632,11 @@ async function loadFeed(){
  async function openSeries(group){
   const list=$('episodeList');
   list.innerHTML='';
+  async function openSeries(group){
+  const list=$('episodeList');
+  list.innerHTML='';
 
+  window.currentSeriesEpisodes = group.episodes;
   const heading=document.createElement('h3');
   heading.textContent='Daftar Episode';
   list.append(heading);
@@ -712,7 +716,16 @@ async function loadFeed(){
       }
     });
 
-    $('videoArea').replaceChildren(v);
+    v.addEventListener('ended',()=>{
+  const episodes = window.currentSeriesEpisodes || [];
+  const index = episodes.findIndex(e=>e.id===x.id);
+
+  if(index>=0 && index<episodes.length-1){
+    play(episodes[index+1]);
+  }
+});
+
+$('videoArea').replaceChildren(v);
   }
 
   $('watch').classList.add('open');
