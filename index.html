@@ -551,7 +551,250 @@ const ins=await sb.from('episodes').insert(payload);if(ins.error){await sb.stora
 e.target.reset();
 await loadFeed();
 });
-async function loadMine(){if(!sb||!user){$('mine').innerHTML='<div class="empty">Masuk untuk melihat kirimanmu.</div>';return}const {data,error}=await sb.from('episodes').select('id,title,episode_no,status,moderation_note,created_at').eq('creator_id',user.id).order('created_at',{ascending:false});$('mine').innerHTML='';if(error){$('mine').textContent=error.message;return}if(!data.length){$('mine').innerHTML='<div class="empty">Belum ada kiriman.</div>';return}data.forEach(x=>{const d=document.createElement('div');d.className='status';d.textContent=x.title+' · Ep '+x.episode_no+' · '+x.status.toUpperCase()+(x.moderation_note?' · Catatan: '+x.moderation_note:'');$('mine').append(d)})}
+async function loadMine(){
+  if(!sb || !user){
+    $('mine').innerHTML='<div class="empty">Masuk untuk melihat episode.</div>';
+    return;
+  }
+
+  $('mine').textContent='Memuat episode...';
+
+  // Periksa role pengguna
+  const {data:profile,error:profileError}=await sb
+    .from('profiles')
+    .select('role')
+    .eq('id',user.id)
+    .single();
+
+  if(profileError){
+    $('mine').textContent='Gagal memeriksa akun: '+profileError.message;
+    return;
+  }
+
+  const isAdmin=profile.role==='admin';
+
+  // Ambil episode
+  let query=sb.from('episodes')
+    .select('id,title,episode_no,category,description,status,moderation_note,created_at,creator_id,video_path,cover_path')
+    .order('created_at',{ascending:false});
+
+  // Kreator hanya melihat episode sendiri
+  if(!isAdmin){
+    query=query.eq('creator_id',user.id);
+  }
+
+  const {data,error}=await query;
+
+  $('mine').innerHTML='';
+
+  if(error){
+    $('mine').textContent='Gagal memuat episode: '+error.message;
+    return;
+  }
+
+  if(!data.length){
+    $('mine').innerHTML='<div class="empty">Belum ada episode.</div>';
+    return;
+  }
+
+  data.forEach(x=>{
+    const d=document.createElement('div');
+    d.className='status';
+
+    const title=document.createElement('strong');
+    title.textContent=x.title+' · Ep '+x.episode_no;
+
+    const info=document.createElement('p');
+    info.textContent='Status: '+x.status.toUpperCase();
+
+    const edit=document.createElement('button');
+    edit.className='btn';
+    edit.textContent='Edit';
+    edit.onclick=()=>editEpisode(x.id);
+
+    const del=document.createElement('button');
+    del.className='btn danger';
+    del.textContent='Hapus';
+    del.onclick=()=>deleteEpisode(x.id);
+
+    d.append(title,info);
+
+    if(x.moderation_note){
+      const note=document.createElement('p');
+      note.textContent='Catatan: '+x.moderation_note;
+      d.append(note);
+    }
+
+    d.append(edit,del);
+    $('mine').append(d);
+  });
+ }
+ async function editEpisode(id){
+  const {data:x,error}=await sb.from('episodes')
+    .select('*')
+    .eq('id',id)
+    .single();
+
+  if(error){
+    alert('Gagal mengambil episode: '+error.message);
+    return;
+  }
+
+  const title=prompt('Judul episode:',x.title);
+  if(title===null)return;
+
+  const episodeNo=prompt('Nomor episode:',x.episode_no);
+  if(episodeNo===null)return;
+
+  const category=prompt('Kategori:',x.category||'');
+  if(category===null)return;
+
+  const description=prompt('Deskripsi:',x.description||'');
+  if(description===null)return;
+
+  if(!title.trim()||!episodeNo.trim()||!Number.isInteger(Number(episodeNo))||Number(episodeNo)<1){
+    alert('Judul dan nomor episode harus diisi dengan benar.');
+    return;
+  }
+
+  const videoInput=document.createElement('input');
+  videoInput.type='file';
+  videoInput.accept='video/*';
+
+  const coverInput=document.createElement('input');
+  coverInput.type='file';
+  coverInput.accept='image/*';
+
+  const replaceVideo=confirm('Apakah ingin mengganti video?');
+  let newVideo=null;
+
+  if(replaceVideo){
+    videoInput.click();
+    await new Promise(resolve=>{
+      videoInput.onchange=resolve;
+      setTimeout(resolve,30000);
+    });
+    newVideo=videoInput.files[0]||null;
+    if(!newVideo)return;
+  }
+
+  const replaceCover=confirm('Apakah ingin mengganti cover?');
+  let newCover=null;
+
+  if(replaceCover){
+    coverInput.click();
+    await new Promise(resolve=>{
+      coverInput.onchange=resolve;
+      setTimeout(resolve,30000);
+    });
+    newCover=coverInput.files[0]||null;
+    if(!newCover)return;
+  }
+
+  const MAX=50*1024*1024;
+
+  if(newVideo&&newVideo.size>MAX){
+    alert('Ukuran video maksimal 50 MB.');
+    return;
+  }
+
+  if(newCover&&newCover.size>MAX){
+    alert('Ukuran cover maksimal 50 MB.');
+    return;
+  }
+
+  const newPaths={};
+
+  if(newVideo){
+    const path=x.creator_id+'/'+x.id+'/video-'+Date.now()+'-'+newVideo.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    const {error}=await sb.storage.from(BUCKET).upload(path,newVideo);
+    if(error){
+      alert('Upload video gagal: '+error.message);
+      return;
+    }
+    newPaths.video_path=path;
+  }
+
+  if(newCover){
+    const path=x.creator_id+'/'+x.id+'/cover-'+Date.now()+'-'+newCover.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    const {error}=await sb.storage.from(BUCKET).upload(path,newCover);
+    if(error){
+      alert('Upload cover gagal: '+error.message);
+      return;
+    }
+    newPaths.cover_path=path;
+  }
+
+  const {error:updateError}=await sb.from('episodes')
+    .update({
+      title:title.trim(),
+      episode_no:Number(episodeNo),
+      category:category.trim(),
+      description:description.trim(),
+      status:'approved',
+      rights_confirmed:true,
+      ...newPaths
+    })
+    .eq('id',id);
+
+  if(updateError){
+    alert('Gagal menyimpan perubahan: '+updateError.message);
+    return;
+  }
+
+  const oldFiles=[];
+  if(newVideo&&x.video_path)oldFiles.push(x.video_path);
+  if(newCover&&x.cover_path)oldFiles.push(x.cover_path);
+
+  if(oldFiles.length){
+    const {error:removeError}=await sb.storage.from(BUCKET).remove(oldFiles);
+    if(removeError){
+      alert('Episode berhasil diedit, tetapi file lama belum terhapus: '+removeError.message);
+    }
+  }
+
+  alert('Episode berhasil diperbarui.');
+  await loadMine();
+  if(typeof loadFeed==='function')await loadFeed();
+ }
+
+async function deleteEpisode(id){
+  if(!confirm('Yakin ingin menghapus episode ini beserta video dan cover-nya?'))return;
+
+  const {data:x,error}=await sb.from('episodes')
+    .select('id,video_path,cover_path')
+    .eq('id',id)
+    .single();
+
+  if(error){alert('Gagal mengambil data episode: '+error.message);return;}
+
+  const {error:deleteError}=await sb.from('episodes')
+    .delete()
+    .eq('id',id);
+
+  if(deleteError){
+    alert('Gagal menghapus episode: '+deleteError.message);
+    return;
+  }
+
+  const files=[x.video_path,x.cover_path].filter(Boolean);
+
+  if(files.length){
+    const {error:storageError}=await sb.storage
+      .from(BUCKET)
+      .remove(files);
+
+    if(storageError){
+      alert('Episode sudah dihapus, tetapi file Storage gagal dihapus: '+storageError.message);
+      await loadMine();
+      return;
+    }
+  }
+
+  alert('Episode, video, dan cover berhasil dihapus.');
+  await loadMine();
+  if(typeof loadFeed==='function')await loadFeed();
+}
 function playYoutube(id){
   document.getElementById('watchTitle').textContent='Drama China Sub Indo';
   document.getElementById('watchMeta').textContent='Drama pilihan dari YouTube';
