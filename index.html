@@ -632,18 +632,16 @@ async function loadFeed(){
  async function openSeries(group){
   const list=$('episodeList');
   list.innerHTML='';
-  async function openSeries(group){
-  const list=$('episodeList');
-  list.innerHTML='';
 
   window.currentSeriesEpisodes = [...group.episodes].sort(
-  (a,b)=>Number(a.episode_no)-Number(b.episode_no)
-);
+    (a,b)=>Number(a.episode_no)-Number(b.episode_no)
+  );
+
   const heading=document.createElement('h3');
   heading.textContent='Daftar Episode';
   list.append(heading);
 
-  group.episodes.forEach((episode)=>{
+  window.currentSeriesEpisodes.forEach((episode)=>{
     const button=document.createElement('button');
     button.className='btn alt';
     button.style.display='block';
@@ -656,6 +654,10 @@ async function loadFeed(){
     list.append(button);
   });
 
+  await play(window.currentSeriesEpisodes[0]);
+  );   
+ }
+       
   await play(group.episodes[0]);
  }
  async function play(x){
