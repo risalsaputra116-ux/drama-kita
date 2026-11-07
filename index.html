@@ -168,6 +168,7 @@ onclick="go('admin')" style="display:none">
 <b>👑</b>Admin
 </button><button data-v="account" onclick="go('account')"><b>◉</b>Akun</button></nav>
 <div id="watch" class="modal" onclick="if(event.target===this)closeWatch()"><div class="sheet"><div class="row" style="justify-content:space-between"><strong id="watchTitle">Drama</strong><button class="btn alt" onclick="closeWatch()">Tutup</button></div><div class="video" id="videoArea"></div><p id="watchMeta" class="hint"></p><p id="watchDesc"></p>
+<div id="episodeList"></div>
 </div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -547,8 +548,88 @@ async function requestWithdrawal(){
   $('profileAvatar').src = data.publicUrl;
   alert('Foto profil berhasil diperbarui!');
  }
-async function loadFeed(){if(!sb)return;const q=$('q').value.trim();let query=sb.from('episodes').select('id,title,episode_no,category,description,creator_id,video_path,cover_path,created_at,profiles(display_name)').eq('status','approved').order('created_at',{ascending:false}).limit(60);if(activeCategory!=='Semua')query=query.eq('category',activeCategory);if(q)query=query.ilike('title','%'+q.replace(/[%_,]/g,'')+'%');const {data,error}=await query;if(error){$('feed').innerHTML='<div class="empty">Gagal memuat drama. Periksa SQL dan kebijakan akses.</div>';return}const grid=$('feed');grid.innerHTML='';if(!data.length){grid.innerHTML='<div class="empty" style="grid-column:1/-1">Belum ada drama yang tayang.</div>';return}for(const x of data){const card=document.createElement('article');card.className='card';const cover=document.createElement('div');cover.className='cover';cover.textContent='🎬';if(x.cover_path){const {data:u}=await sb.storage.from(BUCKET).createSignedUrl(x.cover_path,3600);if(u?.signedUrl){const img=document.createElement('img');img.src=u.signedUrl;cover.textContent='';cover.append(img)}}const info=document.createElement('div');info.className='info';const title=document.createElement('strong');title.textContent=x.title;const small=document.createElement('small');small.textContent=(x.profiles?.display_name||'Kreator')+' · '+x.category+' · Ep '+x.episode_no;const desc=document.createElement('p');desc.textContent=x.description||'';info.append(title,small,desc);card.append(cover,info);card.onclick=()=>play(x);grid.append(card)}}
-async function play(x){
+async function loadFeed(){
+  if(!sb)return;
+
+  const q=$('q').value.trim();
+  let query=sb.from('episodes')
+    .select('id,series_id,title,episode_no,category,description,creator_id,video_path,cover_path,created_at,profiles(display_name)')
+    .eq('status','approved')
+    .order('episode_no',{ascending:true})
+    .limit(500);
+
+  if(activeCategory!=='Semua')query=query.eq('category',activeCategory);
+  if(q)query=query.ilike('title','%'+q.replace(/[%_,]/g,'')+'%');
+
+  const {data,error}=await query;
+
+  if(error){
+    $('feed').innerHTML='<div class="empty">Gagal memuat drama. Periksa SQL dan kebijakan akses.</div>';
+    return;
+  }
+
+  const grid=$('feed');
+  grid.innerHTML='';
+
+  if(!data.length){
+    grid.innerHTML='<div class="empty" style="grid-column:1/-1">Belum ada drama yang tayang.</div>';
+    return;
+  }
+
+  const groups=new Map();
+
+  data.forEach(x=>{
+    const key=x.series_id||'episode-'+x.id;
+
+    if(!groups.has(key)){
+      groups.set(key,{episodes:[],title:x.title});
+    }
+
+    groups.get(key).episodes.push(x);
+  });
+
+  for(const group of groups.values()){
+    group.episodes.sort((a,b)=>Number(a.episode_no)-Number(b.episode_no));
+
+    const x=group.episodes.find(e=>e.cover_path)||group.episodes[0];
+    const card=document.createElement('article');
+    card.className='card';
+
+    const cover=document.createElement('div');
+    cover.className='cover';
+    cover.textContent='🎬';
+
+    if(x.cover_path){
+      const {data:u}=await sb.storage.from(BUCKET).createSignedUrl(x.cover_path,3600);
+      if(u?.signedUrl){
+        const img=document.createElement('img');
+        img.src=u.signedUrl;
+        cover.textContent='';
+        cover.append(img);
+      }
+    }
+
+    const info=document.createElement('div');
+    info.className='info';
+
+    const title=document.createElement('strong');
+    title.textContent=group.title;
+
+    const small=document.createElement('small');
+    small.textContent=(x.profiles?.display_name||'Kreator')+' · '+x.category+' · '+group.episodes.length+' episode';
+
+    const desc=document.createElement('p');
+    desc.textContent=x.description||'';
+
+    info.append(title,small,desc);
+    card.append(cover,info);
+
+    card.onclick=()=>openSeries(group);
+
+    grid.append(card);
+  }
+}
+ async function play(x){
   currentDrama=x;
 
   $('watchTitle').textContent=x.title;
