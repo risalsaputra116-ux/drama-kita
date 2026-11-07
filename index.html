@@ -780,11 +780,7 @@ $('uploadForm').addEventListener('submit',async e=>{
 
   await loadFeed();
 });
-const payload={id,title:$('title').value.trim(),episode_no:Number($('episode').value),category:$('category').value,description:$('description').value.trim(),creator_id:user.id,video_path:videoPath,cover_path:coverPath,status:'approved',rights_confirmed:true};
-const ins=await sb.from('episodes').insert(payload);if(ins.error){await sb.storage.from(BUCKET).remove([videoPath,...(coverPath?[coverPath]:[])]);return msg('uploadStatus','Metadata gagal disimpan: '+ins.error.message)}msg('uploadStatus','Berhasil! Episode langsung tayang dan dapat ditonton.');
-e.target.reset();
-await loadFeed();
-});
+
 async function loadMine(){
   if(!sb || !user){
     $('mine').innerHTML='<div class="empty">Masuk untuk melihat episode.</div>';
