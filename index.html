@@ -636,7 +636,9 @@ async function loadFeed(){
   const list=$('episodeList');
   list.innerHTML='';
 
-  window.currentSeriesEpisodes = group.episodes;
+  window.currentSeriesEpisodes = [...group.episodes].sort(
+  (a,b)=>Number(a.episode_no)-Number(b.episode_no)
+);
   const heading=document.createElement('h3');
   heading.textContent='Daftar Episode';
   list.append(heading);
@@ -717,6 +719,7 @@ async function loadFeed(){
     });
 
     v.addEventListener('ended',()=>{
+     console.log('Episode selesai:',x.episode_no);
   const episodes = window.currentSeriesEpisodes || [];
   const index = episodes.findIndex(e=>e.id===x.id);
 
