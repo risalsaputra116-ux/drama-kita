@@ -629,6 +629,29 @@ async function loadFeed(){
     grid.append(card);
   }
 }
+ async function openSeries(group){
+  const list=$('episodeList');
+  list.innerHTML='';
+
+  const heading=document.createElement('h3');
+  heading.textContent='Daftar Episode';
+  list.append(heading);
+
+  group.episodes.forEach((episode)=>{
+    const button=document.createElement('button');
+    button.className='btn alt';
+    button.style.display='block';
+    button.style.width='100%';
+    button.style.marginBottom='8px';
+    button.textContent='Episode '+episode.episode_no;
+
+    button.onclick=()=>play(episode);
+
+    list.append(button);
+  });
+
+  await play(group.episodes[0]);
+ }
  async function play(x){
   currentDrama=x;
 
