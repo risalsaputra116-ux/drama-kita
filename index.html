@@ -110,7 +110,12 @@ style="width:120px;height:120px;object-fit:cover;border-radius:50%;display:block
   Aplikasi hanya menggunakan anon/publishable key.
 </p></section>
 <section id="upload" class="view">
- <h2>Upload episode</h2><div id="uploadAuth" class="notice">Masuk terlebih dahulu untuk mengunggah drama.</div>
+ <h2>Upload episode</h2><div id="uploadAuth" class="notice">Masuk terlebih dahulu untuk mengunggah drama.</div><label class="field">
+  Pilih serial drama
+  <select id="seriesSelect" onchange="selectSeries()">
+    <option value="">+ Buat serial baru</option>
+  </select>
+ </label>
  <form id="uploadForm">
  <label class="field">Judul serial<input id="title" maxlength="80" required placeholder="Contoh: Cinta di Balik Hujan"></label>
  <label class="field">Nomor episode<input id="episode" type="number" min="1" value="1" required></label>
@@ -193,13 +198,77 @@ function go(v){
   });
 
   if(v==='creator')loadMine();
-  if(v==='upload')updateAuthUI();
+  if(v==='upload'){
+  updateAuthUI();
+  loadSeries();
+ }
   if(v==='admin'){
     loadAdminCreators();
     loadAdminWithdrawals();
   }
 
   window.scrollTo(0,0);
+ }
+ async function loadSeries(){
+  const select=$('seriesSelect');
+  if(!select)return;
+
+  select.innerHTML='<option value="">+ Buat serial baru</option>';
+
+  if(!sb||!user)return;
+
+  const {data:profile}=await sb
+    .from('profiles')
+    .select('role')
+    .eq('id',user.id)
+    .single();
+
+  let query=sb.from('drama_series')
+    .select('id,title')
+    .order('created_at',{ascending:false});
+
+  if(profile?.role!=='admin'){
+    query=query.eq('creator_id',user.id);
+  }
+
+  const {data,error}=await query;
+
+  if(error){
+    msg('uploadStatus','Gagal memuat daftar serial: '+error.message);
+    return;
+  }
+
+  (data||[]).forEach(series=>{
+    const option=document.createElement('option');
+    option.value=series.id;
+    option.textContent=series.title;
+    select.append(option);
+  });
+ }
+ async function selectSeries(){
+  const id=$('seriesSelect').value;
+  const fields=['title','category','description'];
+
+  fields.forEach(x=>$(x).disabled=false);
+
+  if(!id)return;
+
+  const {data,error}=await sb
+    .from('drama_series')
+    .select('title,category,description')
+    .eq('id',id)
+    .single();
+
+  if(error){
+    msg('uploadStatus','Gagal mengambil serial: '+error.message);
+    return;
+  }
+
+  $('title').value=data.title||'';
+  $('category').value=data.category||'Romantis';
+  $('description').value=data.description||'';
+
+  fields.forEach(x=>$(x).disabled=true);
  }
 function msg(id,s){$(id).textContent=s}
 function initCats(){$('cats').innerHTML=categories.map(c=>`<button class="chip ${c===activeCategory?'active':''}" data-cat="${c}">${c}</button>`).join('');$('cats').querySelectorAll('button').forEach(b=>b.onclick=()=>{activeCategory=b.dataset.cat;initCats();loadFeed()})}
@@ -545,7 +614,172 @@ async function play(x){
   $('watch').classList.add('open');
 }
 async function reportCurrent(){if(!user)return alert('Masuk untuk melaporkan konten.');const reason=prompt('Alasan laporan (hak cipta, kekerasan, spam, lainnya):');if(!reason)return;const {error}=await sb.from('reports').insert({episode_id:currentDrama.id,reporter_id:user.id,reason:reason.slice(0,500)});alert(error?'Laporan gagal: '+error.message:'Laporan terkirim. Terima kasih.')}
-$('uploadForm').addEventListener('submit',async e=>{e.preventDefault();if(!sb||!user)return msg('uploadStatus','Backend belum siap atau kamu belum masuk.');const video=$('videoFile').files[0],cover=$('coverFile').files[0];if(!video)return;if(video.size>50*1024*1024)return msg('uploadStatus','File melebihi batas awal aplikasi 50 MB.');if(!['video/mp4','video/webm'].includes(video.type))return msg('uploadStatus','Gunakan MP4 atau WebM.');const id=crypto.randomUUID(),videoPath=user.id+'/'+id+'/video.'+(video.type==='video/webm'?'webm':'mp4');msg('uploadStatus','Mengunggah video...');let up=await sb.storage.from(BUCKET).upload(videoPath,video,{upsert:false,contentType:video.type});if(up.error)return msg('uploadStatus','Upload gagal: '+up.error.message);let coverPath=null;if(cover){coverPath=user.id+'/'+id+'/cover.'+(cover.type==='image/png'?'png':cover.type==='image/webp'?'webp':'jpg');let cu=await sb.storage.from(BUCKET).upload(coverPath,cover,{upsert:false,contentType:cover.type});if(cu.error){await sb.storage.from(BUCKET).remove([videoPath]);return msg('uploadStatus','Poster gagal: '+cu.error.message)}}
+$('uploadForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+
+  if(!sb||!user)
+    return msg('uploadStatus','Silakan masuk terlebih dahulu.');
+
+  const video=$('videoFile').files[0];
+  const cover=$('coverFile').files[0];
+  const selectedSeries=$('seriesSelect').value;
+
+  if(!video)
+    return msg('uploadStatus','Pilih video terlebih dahulu.');
+
+  if(video.size>50*1024*1024)
+    return msg('uploadStatus','Ukuran video maksimal 50 MB.');
+
+  if(!['video/mp4','video/webm'].includes(video.type))
+    return msg('uploadStatus','Gunakan video MP4 atau WebM.');
+
+  if(cover&&!['image/jpeg','image/png','image/webp'].includes(cover.type))
+    return msg('uploadStatus','Poster harus JPG, PNG, atau WebP.');
+
+  const title=$('title').value.trim();
+  const category=$('category').value;
+  const description=$('description').value.trim();
+  const episodeNo=Number($('episode').value);
+
+  if(!selectedSeries&&!title)
+    return msg('uploadStatus','Masukkan judul serial baru.');
+
+  if(!Number.isInteger(episodeNo)||episodeNo<1)
+    return msg('uploadStatus','Nomor episode tidak valid.');
+
+  let seriesId=selectedSeries;
+  let series=null;
+  let newSeries=false;
+
+  msg('uploadStatus','Menyiapkan serial...');
+
+  if(selectedSeries){
+    const result=await sb.from('drama_series')
+      .select('id,title,category,description,cover_path')
+      .eq('id',selectedSeries)
+      .single();
+
+    if(result.error)
+      return msg('uploadStatus','Gagal mengambil serial: '+result.error.message);
+
+    series=result.data;
+
+  }else{
+    seriesId=crypto.randomUUID();
+
+    const result=await sb.from('drama_series')
+      .insert({
+        id:seriesId,
+        creator_id:user.id,
+        title,
+        category,
+        description
+      })
+      .select()
+      .single();
+
+    if(result.error)
+      return msg('uploadStatus','Gagal membuat serial: '+result.error.message);
+
+    series=result.data;
+    newSeries=true;
+  }
+
+  const episodeId=crypto.randomUUID();
+  const folder=user.id+'/'+seriesId+'/'+episodeId+'/';
+
+  const videoPath=folder+'video.'+
+    (video.type==='video/webm'?'webm':'mp4');
+
+  let coverPath=null;
+
+  msg('uploadStatus','Mengunggah video...');
+
+  const uploadVideo=await sb.storage
+    .from(BUCKET)
+    .upload(videoPath,video,{
+      upsert:false,
+      contentType:video.type
+    });
+
+  if(uploadVideo.error){
+    if(newSeries)
+      await sb.from('drama_series').delete().eq('id',seriesId);
+
+    return msg('uploadStatus','Upload video gagal: '+uploadVideo.error.message);
+  }
+
+  if(cover){
+    coverPath=folder+'cover.'+
+      (cover.type==='image/png'?'png':
+       cover.type==='image/webp'?'webp':'jpg');
+
+    const uploadCover=await sb.storage
+      .from(BUCKET)
+      .upload(coverPath,cover,{
+        upsert:false,
+        contentType:cover.type
+      });
+
+    if(uploadCover.error){
+      await sb.storage.from(BUCKET).remove([videoPath]);
+
+      if(newSeries)
+        await sb.from('drama_series').delete().eq('id',seriesId);
+
+      return msg('uploadStatus','Upload poster gagal: '+uploadCover.error.message);
+    }
+  }
+
+  msg('uploadStatus','Menyimpan data episode...');
+
+  const payload={
+    id:episodeId,
+    series_id:seriesId,
+    title:series.title,
+    episode_no:episodeNo,
+    category:series.category,
+    description:series.description,
+    creator_id:user.id,
+    video_path:videoPath,
+    cover_path:coverPath,
+    status:'approved',
+    rights_confirmed:true
+  };
+
+  const ins=await sb.from('episodes').insert(payload);
+
+  if(ins.error){
+    const files=[videoPath,...(coverPath?[coverPath]:[])];
+    await sb.storage.from(BUCKET).remove(files);
+
+    if(newSeries)
+      await sb.from('drama_series').delete().eq('id',seriesId);
+
+    return msg('uploadStatus','Gagal menyimpan episode: '+ins.error.message);
+  }
+
+  if(coverPath&&!series.cover_path){
+    await sb.from('drama_series')
+      .update({cover_path:coverPath})
+      .eq('id',seriesId);
+  }
+
+  msg('uploadStatus','Berhasil! Episode '+episodeNo+' masuk ke serial '+series.title+'.');
+
+  e.target.reset();
+
+  ['title','category','description'].forEach(id=>{
+    $(id).disabled=false;
+  });
+
+  await loadSeries();
+
+  $('seriesSelect').value=seriesId;
+  await selectSeries();
+
+  await loadFeed();
+});
 const payload={id,title:$('title').value.trim(),episode_no:Number($('episode').value),category:$('category').value,description:$('description').value.trim(),creator_id:user.id,video_path:videoPath,cover_path:coverPath,status:'approved',rights_confirmed:true};
 const ins=await sb.from('episodes').insert(payload);if(ins.error){await sb.storage.from(BUCKET).remove([videoPath,...(coverPath?[coverPath]:[])]);return msg('uploadStatus','Metadata gagal disimpan: '+ins.error.message)}msg('uploadStatus','Berhasil! Episode langsung tayang dan dapat ditonton.');
 e.target.reset();
