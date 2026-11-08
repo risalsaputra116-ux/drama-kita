@@ -1432,10 +1432,16 @@ document.getElementById('splitStart').onclick=async()=>{
 
 status.textContent='Memasukkan video ke FFmpeg...';
 
+status.textContent='Membaca file video...';
+
+const buffer=await new Response(file).arrayBuffer();
+
+status.textContent='Memasukkan video ke FFmpeg...';
+
 await ffmpeg.FS(
   'writeFile',
   input,
-  new Uint8Array(await file.arrayBuffer())
+  new Uint8Array(buffer)
 );
 
 status.textContent='Memeriksa durasi video...';
