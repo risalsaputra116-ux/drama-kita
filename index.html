@@ -1467,13 +1467,11 @@ ffmpeg.setLogger(({message})=>{
 });
 
 try{
-  await ffmpeg.run(
-    '-i',input,
-    '-f','null',
-    '-'
-  );
+  await ffmpeg.run('-i',input);
 }catch(e){
-  console.log('Pemeriksaan FFmpeg:',e);
+  if(!String(e).includes('exit(0)')){
+    throw e;
+  }
 }
 
 const match=ffmpegLog.match(
@@ -1481,7 +1479,7 @@ const match=ffmpegLog.match(
 );
 
 if(!match){
-  throw new Error('FFmpeg tidak dapat menemukan durasi video.');
+  throw new Error('Durasi video tidak ditemukan.');
 }
 
 const duration=
@@ -1513,11 +1511,19 @@ const count=Math.ceil(duration/120);
     }
   }
 
-  if(!ffmpeg.FS('readdir','/').includes(output)){
-    throw new Error('Episode '+(i+1)+' gagal dibuat.');
-  }
-  const data=ffmpeg.FS('readFile',output);
-  const blob=new Blob([data.buffer],{type:'video/mp4'});
+  const files=ffmpeg.FS('readdir','/');
+
+if(!files.includes(output)){
+  throw new Error('Episode '+(i+1)+' tidak berhasil dibuat.');
+}
+
+const data=ffmpeg.FS('readFile',output);
+
+if(data.length===0){
+  throw new Error('Episode '+(i+1)+' kosong.');
+}
+
+const blob=new Blob([data],{type:'video/mp4'});
   const url=URL.createObjectURL(blob);
 
   const link=document.createElement('a');
