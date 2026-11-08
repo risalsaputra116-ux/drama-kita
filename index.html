@@ -1435,8 +1435,9 @@ document.getElementById('splitStart').onclick=async()=>{
 
     await new Promise((resolve,reject)=>{
       probe.onloadedmetadata=resolve;
-      probe.onerror=reject;
-    });
+      probe.onerror=()=>{
+  reject(new Error('HP tidak dapat membaca metadata video MP4. Coba video MP4 lain.'));
+};
 
     const duration=probe.duration;
     URL.revokeObjectURL(probe.src);
