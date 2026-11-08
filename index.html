@@ -1359,20 +1359,33 @@ function playYoutube(id){
   });
 }
 init();
- </script><script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script><script>
-window.addEventListener('load',()=>{
-  const status=document.createElement('div');
-  status.style.cssText='position:fixed;bottom:15px;left:10px;right:10px;padding:14px;background:#222;color:white;z-index:99999;border-radius:10px;text-align:center';
+ </script><script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
+ <script>
+const ffmpegTestButton=document.createElement('button');
+ffmpegTestButton.textContent='Uji Mesin FFmpeg';
+ffmpegTestButton.style.cssText='position:fixed;bottom:15px;left:10px;right:10px;padding:14px;background:#7045ff;color:white;border:0;border-radius:10px;z-index:99999';
 
-  if(typeof FFmpeg!=='undefined' &&
-     typeof FFmpeg.createFFmpeg==='function'){
-    status.textContent='FFmpeg berhasil dimuat!';
-  }else{
-    status.textContent='FFmpeg belum berhasil dimuat.';
+document.body.appendChild(ffmpegTestButton);
+
+ffmpegTestButton.onclick=async()=>{
+  ffmpegTestButton.disabled=true;
+  ffmpegTestButton.textContent='Memuat mesin FFmpeg...';
+
+  try{
+    const ffmpeg=FFmpeg.createFFmpeg({
+      log:true,
+      corePath:'https://unpkg.com/@ffmpeg/core-st@0.11.1/dist/ffmpeg-core.js'
+    });
+
+    await ffmpeg.load();
+
+    window.dramaFFmpeg=ffmpeg;
+    ffmpegTestButton.textContent='Mesin FFmpeg siap!';
+  }catch(error){
+    console.error(error);
+    ffmpegTestButton.textContent='Gagal memuat: '+error.message;
+    ffmpegTestButton.disabled=false;
   }
-
-  document.body.appendChild(status);
-});
-</script>
+};
  </script></body></html>
 
