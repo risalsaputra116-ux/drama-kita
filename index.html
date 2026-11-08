@@ -1515,10 +1515,13 @@ const count=Math.ceil(duration/120);
 
     ffmpeg.FS('unlink',input);
     status.textContent='Selesai! '+count+' episode berhasil dipotong.';
-  }catch(error){
-    console.error(error);
-    status.textContent='Gagal memotong: '+String(error);
-  }finally{
+   }catch(error){
+  console.error('DETAIL ERROR:',error);
+
+  status.textContent='Gagal memotong: '+
+    (error?.message||JSON.stringify(error));
+}
+  finally{
     button.disabled=false;
   }
 };
