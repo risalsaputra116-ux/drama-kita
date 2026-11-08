@@ -1406,8 +1406,7 @@ document.body.appendChild(splitBox);
 
 const splitOpen=document.createElement('button');
 splitOpen.textContent='Uji Potong Video MP4';
-splitOpen.style.cssText='position:fixed;bottom:75px;left:10px;right:10px;padding:14px;background:#168b65;color:white;border:0;border-radius:10px;z-index:99997';
-
+splitOpen.style.cssText='position:fixed;bottom:90px;left:10px;right:10px;padding:14px;background:#168b65;color:white;border:0;border-radius:10px;z-index:100001;display:block';
 document.body.appendChild(splitOpen);
 
 splitOpen.onclick=()=>splitBox.style.display='block';
@@ -1535,23 +1534,7 @@ const count=Math.ceil(duration/120);
 ffmpeg.FS('unlink',input);
 status.textContent='Selesai! '+count+' episode berhasil dipotong.';
 
-      const data=ffmpeg.FS('readFile',output);
-      const blob=new Blob([data.buffer],{type:'video/mp4'});
-      const url=URL.createObjectURL(blob);
-
-      const link=document.createElement('a');
-      link.href=url;
-      link.download=output;
-      link.textContent='Unduh Episode '+(i+1);
-      link.style.display='block';
-      link.style.padding='12px';
-      results.append(link);
-
-      ffmpeg.FS('unlink',output);
-    }
-
-    ffmpeg.FS('unlink',input);
-    status.textContent='Selesai! '+count+' episode berhasil dipotong.';
+      
    }catch(error){
   console.error('DETAIL ERROR:',error);
 
