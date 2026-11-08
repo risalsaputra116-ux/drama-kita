@@ -1468,10 +1468,14 @@ ffmpeg.setLogger(({message})=>{
 });
 
 try{
-  await ffmpeg.run('-i',input);
+  await ffmpeg.run(
+    '-i',input,
+    '-f','null',
+    '-'
+  );
 }catch(e){
-  console.log('Pemeriksaan video selesai:',e);
-  }
+  console.log('Pemeriksaan FFmpeg:',e);
+}
 
 const match=ffmpegLog.match(
   /Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/
