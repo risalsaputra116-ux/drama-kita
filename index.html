@@ -636,14 +636,7 @@ async function loadFeed(){
         cover.append(img);
       }
     }
-        const synopsis=document.createElement('div');
-    synopsis.textContent=x.description||'Belum ada sinopsis.';
-    synopsis.style.cssText=
-      'position:absolute;bottom:0;left:0;right:0;padding:12px;color:white;background:linear-gradient(transparent,#000e);font-size:12px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;';
-
-    cover.style.position='relative';
-    cover.style.overflow='hidden';
-    cover.append(synopsis);
+        
     const info=document.createElement('div');
     info.className='info';
 
