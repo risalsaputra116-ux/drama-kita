@@ -1479,7 +1479,7 @@ document.getElementById('splitStart').onclick=async()=>{
     status.textContent='Selesai! '+count+' episode berhasil dipotong.';
   }catch(error){
     console.error(error);
-    status.textContent='Gagal memotong: '+error.message;
+    status.textContent='Gagal memotong: '+String(error);
   }finally{
     button.disabled=false;
   }
