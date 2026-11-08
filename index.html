@@ -1429,31 +1429,44 @@ document.getElementById('splitStart').onclick=async()=>{
 
   try{
     const input='input.mp4';
-    const probe=document.createElement('video');
-    probe.preload='auto';
-probe.muted=true;
-probe.playsInline=true;
-probe.src=URL.createObjectURL(file);
-probe.load();
 
-    await new Promise((resolve,reject)=>{
-  probe.onloadedmetadata=resolve;
-  probe.onerror=()=>{
-    const e=probe.error;
-    reject(new Error(
-      'Kode: '+(e?.code||'tidak diketahui')+
-      ' | Tipe: '+(file.type||'kosong')+
-      ' | File: '+file.name
-    ));
-  };
+status.textContent='Memasukkan video ke FFmpeg...';
+
+await ffmpeg.FS(
+  'writeFile',
+  input,
+  new Uint8Array(await file.arrayBuffer())
+);
+
+status.textContent='Memeriksa durasi video...';
+
+let ffmpegLog='';
+
+ffmpeg.setLogger(({message})=>{
+  ffmpegLog+=message+'\n';
 });
 
-const duration=probe.duration;
-    URL.revokeObjectURL(probe.src);
+try{
+  await ffmpeg.run('-i',input);
+}catch(e){
+  // FFmpeg memang berhenti karena belum diberi perintah output.
+}
 
-    await ffmpeg.FS('writeFile',input,new Uint8Array(await file.arrayBuffer()));
+const match=ffmpegLog.match(
+  /Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/
+);
 
-    const count=Math.ceil(duration/120);
+if(!match){
+  throw new Error('FFmpeg tidak dapat menemukan durasi video.');
+}
+
+const duration=
+  Number(match[1])*3600+
+  Number(match[2])*60+
+  Number(match[3]);
+
+const count=Math.ceil(duration/120);
+    
 
     for(let i=0;i<count;i++){
       const start=i*120;
