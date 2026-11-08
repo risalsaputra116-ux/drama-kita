@@ -1430,8 +1430,11 @@ document.getElementById('splitStart').onclick=async()=>{
   try{
     const input='input.mp4';
     const probe=document.createElement('video');
-    probe.preload='metadata';
-    probe.src=URL.createObjectURL(file);
+    probe.preload='auto';
+probe.muted=true;
+probe.playsInline=true;
+probe.src=URL.createObjectURL(file);
+probe.load();
 
     await new Promise((resolve,reject)=>{
   probe.onloadedmetadata=resolve;
