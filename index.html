@@ -1434,17 +1434,18 @@ document.getElementById('splitStart').onclick=async()=>{
     probe.src=URL.createObjectURL(file);
 
     await new Promise((resolve,reject)=>{
-      probe.onloadedmetadata=resolve;
-      probe.onerror=()=>{
-  const e=probe.error;
-  reject(new Error(
-    'Kode: '+(e?.code||'tidak diketahui')+
-    ' | Tipe: '+(file.type||'kosong')+
-    ' | File: '+file.name
-  ));
-};
+  probe.onloadedmetadata=resolve;
+  probe.onerror=()=>{
+    const e=probe.error;
+    reject(new Error(
+      'Kode: '+(e?.code||'tidak diketahui')+
+      ' | Tipe: '+(file.type||'kosong')+
+      ' | File: '+file.name
+    ));
+  };
+});
 
-    const duration=probe.duration;
+const duration=probe.duration;
     URL.revokeObjectURL(probe.src);
 
     await ffmpeg.FS('writeFile',input,new Uint8Array(await file.arrayBuffer()));
