@@ -1373,9 +1373,10 @@ ffmpegTestButton.onclick=async()=>{
 
   try{
     const ffmpeg=FFmpeg.createFFmpeg({
-      log:true,
-      corePath:'https://unpkg.com/@ffmpeg/core-st@0.11.1/dist/ffmpeg-core.js'
-    });
+  log:true,
+  mainName:'main',
+  corePath:'https://unpkg.com/@ffmpeg/core-st@0.11.1/dist/ffmpeg-core.js'
+});
 
     await ffmpeg.load();
 
