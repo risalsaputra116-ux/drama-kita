@@ -1494,19 +1494,46 @@ const count=Math.ceil(duration/120);
     
 
     for(let i=0;i<count;i++){
-      const start=i*120;
-      const output='episode-'+(i+1)+'.mp4';
+  const start=i*120;
+  const output='episode-'+(i+1)+'.mp4';
 
-      status.textContent='Memotong Episode '+(i+1)+' dari '+count+'...';
+  status.textContent='Memotong Episode '+(i+1)+' dari '+count+'...';
 
-      await ffmpeg.run(
-        '-ss',String(start),
-        '-i',input,
-        '-t','120',
-        '-c','copy',
-        '-movflags','+faststart',
-        output
-      );
+  try{
+    await ffmpeg.run(
+      '-ss',String(start),
+      '-i',input,
+      '-t','120',
+      '-c','copy',
+      '-movflags','+faststart',
+      output
+    );
+    }catch(e){
+    if(!String(e).includes('exit(0)')){
+      throw e;
+    }
+  }
+
+  if(!ffmpeg.FS('readdir','/').includes(output)){
+    throw new Error('Episode '+(i+1)+' gagal dibuat.');
+  }
+  const data=ffmpeg.FS('readFile',output);
+  const blob=new Blob([data.buffer],{type:'video/mp4'});
+  const url=URL.createObjectURL(blob);
+
+  const link=document.createElement('a');
+  link.href=url;
+  link.download=output;
+  link.textContent='Unduh Episode '+(i+1);
+  link.style.display='block';
+  link.style.padding='12px';
+  results.append(link);
+
+  ffmpeg.FS('unlink',output);
+}
+
+ffmpeg.FS('unlink',input);
+status.textContent='Selesai! '+count+' episode berhasil dipotong.';
 
       const data=ffmpeg.FS('readFile',output);
       const blob=new Blob([data.buffer],{type:'video/mp4'});
