@@ -1361,11 +1361,18 @@ function playYoutube(id){
 init();
  </script><script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script><script>
 window.addEventListener('load',()=>{
-  if(typeof FFmpeg==='undefined'){
-    console.error('FFmpeg gagal dimuat');
+  const status=document.createElement('div');
+  status.style.cssText='position:fixed;bottom:15px;left:10px;right:10px;padding:14px;background:#222;color:white;z-index:99999;border-radius:10px;text-align:center';
+
+  if(typeof FFmpeg!=='undefined' &&
+     typeof FFmpeg.createFFmpeg==='function'){
+    status.textContent='FFmpeg berhasil dimuat!';
   }else{
-    console.log('FFmpeg berhasil dimuat');
+    status.textContent='FFmpeg belum berhasil dimuat.';
   }
+
+  document.body.appendChild(status);
 });
+</script>
  </script></body></html>
 
