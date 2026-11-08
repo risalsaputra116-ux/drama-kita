@@ -1464,8 +1464,8 @@ ffmpeg.setLogger(({message})=>{
 try{
   await ffmpeg.run('-i',input);
 }catch(e){
-  // FFmpeg memang berhenti karena belum diberi perintah output.
-}
+  console.log('Pemeriksaan video selesai:',e);
+  }
 
 const match=ffmpegLog.match(
   /Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/
