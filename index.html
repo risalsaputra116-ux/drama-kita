@@ -1388,5 +1388,101 @@ ffmpegTestButton.onclick=async()=>{
     ffmpegTestButton.disabled=false;
   }
 };
- </script></body></html>
+ </script><script>
+const splitBox=document.createElement('div');
+
+splitBox.style.cssText='position:fixed;inset:0;background:#171722;color:white;z-index:99998;padding:20px;overflow:auto;display:none';
+
+splitBox.innerHTML=`
+<h3>Uji Pemotongan Video</h3>
+<input id="splitVideo" type="file" accept="video/mp4">
+<button id="splitStart">Potong menjadi 2 menit</button>
+<p id="splitStatus"></p>
+<div id="splitResults"></div>
+<button id="splitClose">Tutup</button>
+`;
+
+document.body.appendChild(splitBox);
+
+const splitOpen=document.createElement('button');
+splitOpen.textContent='Uji Potong Video MP4';
+splitOpen.style.cssText='position:fixed;bottom:75px;left:10px;right:10px;padding:14px;background:#168b65;color:white;border:0;border-radius:10px;z-index:99997';
+
+document.body.appendChild(splitOpen);
+
+splitOpen.onclick=()=>splitBox.style.display='block';
+document.getElementById('splitClose').onclick=()=>splitBox.style.display='none';
+
+document.getElementById('splitStart').onclick=async()=>{
+  const file=document.getElementById('splitVideo').files[0];
+  const status=document.getElementById('splitStatus');
+  const results=document.getElementById('splitResults');
+  const ffmpeg=window.dramaFFmpeg;
+
+  if(!file)return status.textContent='Pilih video MP4 dahulu.';
+  if(!ffmpeg)return status.textContent='Jalankan Uji Mesin FFmpeg dahulu.';
+
+  const button=document.getElementById('splitStart');
+  button.disabled=true;
+  results.innerHTML='';
+  status.textContent='Membaca durasi video...';
+
+  try{
+    const input='input.mp4';
+    const probe=document.createElement('video');
+    probe.preload='metadata';
+    probe.src=URL.createObjectURL(file);
+
+    await new Promise((resolve,reject)=>{
+      probe.onloadedmetadata=resolve;
+      probe.onerror=reject;
+    });
+
+    const duration=probe.duration;
+    URL.revokeObjectURL(probe.src);
+
+    await ffmpeg.FS('writeFile',input,new Uint8Array(await file.arrayBuffer()));
+
+    const count=Math.ceil(duration/120);
+
+    for(let i=0;i<count;i++){
+      const start=i*120;
+      const output='episode-'+(i+1)+'.mp4';
+
+      status.textContent='Memotong Episode '+(i+1)+' dari '+count+'...';
+
+      await ffmpeg.run(
+        '-ss',String(start),
+        '-i',input,
+        '-t','120',
+        '-c','copy',
+        '-movflags','+faststart',
+        output
+      );
+
+      const data=ffmpeg.FS('readFile',output);
+      const blob=new Blob([data.buffer],{type:'video/mp4'});
+      const url=URL.createObjectURL(blob);
+
+      const link=document.createElement('a');
+      link.href=url;
+      link.download=output;
+      link.textContent='Unduh Episode '+(i+1);
+      link.style.display='block';
+      link.style.padding='12px';
+      results.append(link);
+
+      ffmpeg.FS('unlink',output);
+    }
+
+    ffmpeg.FS('unlink',input);
+    status.textContent='Selesai! '+count+' episode berhasil dipotong.';
+  }catch(error){
+    console.error(error);
+    status.textContent='Gagal memotong: '+error.message;
+  }finally{
+    button.disabled=false;
+  }
+};
+     </script></body></html>
 
