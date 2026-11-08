@@ -1438,9 +1438,15 @@ const buffer=await new Promise((resolve,reject)=>{
   const reader=new FileReader();
 
   reader.onload=()=>resolve(reader.result);
-  reader.onerror=()=>reject(
-    new Error('Gagal membaca file dari penyimpanan HP.')
-  );
+  reader.onerror=()=>{
+  console.error('FileReader error:',reader.error);
+  reject(new Error(
+    'FileReader gagal: '+
+    (reader.error?.name||'Tidak diketahui')+
+    ' - '+
+    (reader.error?.message||'Tidak ada keterangan')
+  ));
+};
 
   reader.readAsArrayBuffer(file);
 });
