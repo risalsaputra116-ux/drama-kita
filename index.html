@@ -680,19 +680,28 @@ info.append(title,small);
   heading.textContent='Daftar Episode';
   list.append(heading);
 
-  window.currentSeriesEpisodes.forEach((episode)=>{
+  
+window.currentSeriesEpisodes.forEach((episode)=>{
     const button=document.createElement('button');
+
     button.className='btn alt';
-    button.style.display='block';
+    button.style.display='flex';
+    button.style.alignItems='center';
+    button.style.justifyContent='space-between';
     button.style.width='100%';
-    button.style.marginBottom='8px';
-    button.textContent='Episode '+episode.episode_no;
+    button.style.padding='15px';
+    button.style.marginBottom='10px';
+    button.style.borderRadius='12px';
+    button.style.textAlign='left';
+
+    button.innerHTML=
+      '<span>Episode '+episode.episode_no+'</span>'+
+      '<span>▶ Putar</span>';
 
     button.onclick=()=>play(episode);
 
     list.append(button);
   });
-
   await play(window.currentSeriesEpisodes[0]);
  }
  async function play(x){
