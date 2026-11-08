@@ -195,9 +195,21 @@ style="width:120px;height:120px;object-fit:cover;border-radius:50%;display:block
 onclick="go('admin')" style="display:none">
 <b>👑</b>Admin
 </button><button data-v="account" onclick="go('account')"><b>◉</b>Akun</button></nav>
-<div id="watch" class="modal" onclick="if(event.target===this)closeWatch()"><div class="sheet"><div class="row" style="justify-content:space-between"><strong id="watchTitle">Drama</strong><button class="btn alt" onclick="closeWatch()">Tutup</button></div><div class="video" id="videoArea"></div><p id="watchMeta" class="hint"></p><p id="watchDesc"></p>
-<div id="episodeList"></div>
-</div></div>
+<div id="watch" class="modal" onclick="if(event.target===this)closeWatch()">
+  <div class="sheet">
+    <div class="row" style="justify-content:space-between">
+      <strong id="watchTitle">Drama</strong>
+      <button class="btn alt" onclick="closeWatch()">Tutup</button>
+    </div>
+
+    <p id="watchMeta" class="hint"></p>
+    <p id="watchDesc"></p>
+
+    <div class="video" id="videoArea"></div>
+
+    <div id="episodeList"></div>
+  </div>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* SETUP: isi dua nilai ini dari Supabase Project Settings > API. Jangan pernah masukkan service_role key. */
