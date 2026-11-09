@@ -1539,11 +1539,24 @@ document.getElementById('splitStart').onclick=async()=>{
       const label=document.createElement('p');
       label.textContent='Episode '+(i+1);
 
-      const link=document.createElement('a');
-      link.href=url;
-      link.download='episode_'+(i+1)+'.mp4';
-      link.textContent='Download Episode '+(i+1);
-      link.style.color='#ff79a0';
+      // Pemutar video langsung
+const player=document.createElement('video');
+player.src=url;
+player.controls=true;
+player.playsInline=true;
+player.preload='metadata';
+player.style.width='100%';
+player.style.borderRadius='12px';
+player.style.marginBottom='10px';
+
+// Tombol download
+const link=document.createElement('a');
+link.href=url;
+link.download='episode_'+(i+1)+'.mp4';
+link.textContent='Download Episode '+(i+1);
+link.style.color='#ff79a0';
+
+item.append(label,player,link);
 
       item.append(label,link);
       results.appendChild(item);
