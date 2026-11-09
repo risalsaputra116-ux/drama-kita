@@ -1494,6 +1494,112 @@ document.getElementById('splitStart').onclick=async()=>{
       }catch(e){
         if(!String(e).includes('exit(0)')){
           throw e;
+
+document.getElementById('splitStart').onclick=async()=>{
+  const file=document.getElementById('splitVideo').files[0];
+  const status=document.getElementById('splitStatus');
+  const results=document.getElementById('splitResults');
+  const button=document.getElementById('splitStart');
+  const ffmpeg=window.dramaFFmpeg;
+
+  if(!file){
+    status.textContent='Pilih video MP4 dahulu.';
+    return;
+  }
+
+  if(!ffmpeg){
+    status.textContent='Jalankan Uji Mesin FFmpeg dahulu.';
+    return;
+  }
+
+  if(!['video/mp4','video/webm'].includes(file.type)){
+    status.textContent='Gunakan video MP4 atau WebM.';
+    return;
+  }
+
+  button.disabled=true;
+  results.innerHTML='';
+
+  const input='input.mp4';
+  let duration=0;
+  let objectUrl=null;
+
+  try{
+
+    status.textContent='Memeriksa durasi video...';
+
+    objectUrl=URL.createObjectURL(file);
+
+    duration=await new Promise((resolve,reject)=>{
+      const video=document.createElement('video');
+
+      video.preload='metadata';
+
+      video.onloadedmetadata=()=>{
+        if(!Number.isFinite(video.duration)||video.duration<=0){
+          reject(new Error('Durasi video tidak valid.'));
+          return;
+        }
+
+        resolve(video.duration);
+      };
+
+      video.onerror=()=>{
+        reject(new Error('Browser tidak dapat membaca video.'));
+      };
+
+      video.src=objectUrl;
+    });
+
+    URL.revokeObjectURL(objectUrl);
+    objectUrl=null;
+
+    const count=Math.ceil(duration/120);
+
+    status.textContent=
+      'Durasi '+Math.floor(duration)+' detik. Menyiapkan '+count+' episode...';
+
+    const buffer=await file.arrayBuffer();
+
+    status.textContent='Memasukkan video ke FFmpeg...';
+
+    ffmpeg.FS(
+      'writeFile',
+      input,
+      new Uint8Array(buffer)
+    );
+
+    for(let i=0;i<count;i++){
+
+      const start=i*120;
+      const length=Math.min(120,duration-start);
+      const output='episode_'+(i+1)+'.mp4';
+
+      status.textContent=
+        'Memotong episode '+(i+1)+' dari '+count+'...';
+
+      try{
+
+        await ffmpeg.run(
+          '-ss',String(start),
+          '-i',input,
+          '-t',String(length),
+          '-c:v','libx264',
+          '-preset','ultrafast',
+          '-c:a','aac',
+          '-b:a','128k',
+          '-movflags','+faststart',
+          output
+        );
+
+      }catch(error){
+
+        const files=ffmpeg.FS('readdir','/');
+
+        if(!files.includes(output)){
+          throw new Error(
+            'FFmpeg gagal membuat episode '+(i+1)+': '+error.message
+          );
         }
       }
 
@@ -1507,7 +1613,7 @@ document.getElementById('splitStart').onclick=async()=>{
 
       const data=ffmpeg.FS('readFile',output);
 
-      if(data.length===0){
+      if(!data || data.length===0){
         throw new Error(
           'Episode '+(i+1)+' kosong.'
         );
@@ -1520,15 +1626,23 @@ document.getElementById('splitStart').onclick=async()=>{
 
       const url=URL.createObjectURL(blob);
 
+      const item=document.createElement('div');
+      item.style.cssText=
+        'background:#29243a;padding:12px;border-radius:10px;margin:10px 0';
+
+      const label=document.createElement('p');
+      label.textContent=
+        'Episode '+(i+1)+' · '+Math.ceil(length)+' detik';
+
       const link=document.createElement('a');
       link.href=url;
       link.download=output;
-      link.textContent='Download Episode '+(i+1);
+      link.textContent='⬇ Download Episode '+(i+1);
+      link.style.cssText=
+        'display:block;color:#ff79a0;font-weight:bold;padding:10px 0';
 
-      link.style.display='block';
-      link.style.margin='10px 0';
-
-      results.appendChild(link);
+      item.append(label,link);
+      results.appendChild(item);
 
       ffmpeg.FS('unlink',output);
     }
@@ -1537,12 +1651,18 @@ document.getElementById('splitStart').onclick=async()=>{
       'Selesai! '+count+' episode berhasil dibuat.';
 
   }catch(error){
+
     console.error(error);
 
     status.textContent=
       'Gagal: '+error.message;
 
   }finally{
+
+    if(objectUrl){
+      URL.revokeObjectURL(objectUrl);
+    }
+
     try{
       ffmpeg.FS('unlink',input);
     }catch(e){}
@@ -1550,6 +1670,5 @@ document.getElementById('splitStart').onclick=async()=>{
     button.disabled=false;
   }
 };
-
   </script></body></html>
 
