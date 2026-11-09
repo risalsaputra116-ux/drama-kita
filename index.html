@@ -1486,43 +1486,48 @@ document.getElementById('splitStart').onclick=async()=>{
 
     ffmpeg.FS('writeFile',input,new Uint8Array(buffer));
 
-    for(let i=0;i<count;i++){
-      const start=i*120;
-      const length=Math.min(120,duration-start);
-      const output='episode_'+(i+1)+'.mp4';
+    
 
-      status.textContent='Memproses episode '+(i+1)+' dari '+count+'...';
+    // Bersihkan hasil pemotongan lama
+    const oldFiles=ffmpeg.FS('readdir','/')
+      .filter(name=>/^episode_\d{3}\.mp4$/.test(name));
 
-      try{
-        await ffmpeg.run(
-          '-ss',String(start),
-          '-i',input,
-          '-t',String(length),
-          '-c:v','libx264',
-          '-preset','ultrafast',
-          '-c:a','aac',
-          '-b:a','128k',
-          '-movflags','+faststart',
-          output
-        );
-      }catch(error){
-        const files=ffmpeg.FS('readdir','/');
+    oldFiles.forEach(name=>{
+      ffmpeg.FS('unlink',name);
+    });
 
-        if(!files.includes(output)){
-          throw new Error('Gagal membuat episode '+(i+1)+': '+error.message);
-        }
-      }
+    status.textContent='Memotong seluruh video. Mohon tunggu...';
 
-      const files=ffmpeg.FS('readdir','/');
+    // Jalankan satu perintah untuk seluruh episode
+    await ffmpeg.run(
+      '-i',input,
+      '-c:v','libx264',
+      '-preset','ultrafast',
+      '-force_key_frames','expr:gte(t,n_forced*120)',
+      '-c:a','aac',
+      '-b:a','128k',
+      '-f','segment',
+      '-segment_time','120',
+      '-reset_timestamps','1',
+      '-segment_format','mp4',
+      'episode_%03d.mp4'
+    );
 
-      if(!files.includes(output)){
-        throw new Error('Episode '+(i+1)+' tidak berhasil dibuat.');
-      }
+    // Ambil semua episode yang berhasil dibuat
+    const outputs=ffmpeg.FS('readdir','/')
+      .filter(name=>/^episode_\d{3}\.mp4$/.test(name))
+      .sort();
 
-      const data=ffmpeg.FS('readFile',output);
+    if(outputs.length===0){
+      throw new Error('FFmpeg tidak menghasilkan episode.');
+    }
+
+    // Tampilkan tombol download
+    outputs.forEach((name,i)=>{
+      const data=ffmpeg.FS('readFile',name);
 
       if(!data||data.length===0){
-        throw new Error('Episode '+(i+1)+' kosong.');
+        throw new Error('File '+name+' kosong.');
       }
 
       const blob=new Blob([data],{type:'video/mp4'});
@@ -1532,22 +1537,22 @@ document.getElementById('splitStart').onclick=async()=>{
       item.className='status';
 
       const label=document.createElement('p');
-      label.textContent='Episode '+(i+1)+' · '+Math.ceil(length)+' detik';
+      label.textContent='Episode '+(i+1);
 
       const link=document.createElement('a');
       link.href=url;
-      link.download=output;
+      link.download='episode_'+(i+1)+'.mp4';
       link.textContent='Download Episode '+(i+1);
       link.style.color='#ff79a0';
 
       item.append(label,link);
       results.appendChild(item);
 
-      ffmpeg.FS('unlink',output);
-    }
-
-    status.textContent='Selesai! '+count+' episode berhasil dibuat.';
-
+      ffmpeg.FS('unlink',name);
+    });
+status.textContent=
+  'Selesai! '+outputs.length+' episode berhasil dibuat.';
+    
   }catch(error){
     console.error(error);
     status.textContent='Gagal: '+error.message;
