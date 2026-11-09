@@ -1469,28 +1469,10 @@ document.getElementById('splitStart').onclick=async()=>{
 
     objectUrl=URL.createObjectURL(file);
 
-    const duration=await new Promise((resolve,reject)=>{
-      const video=document.createElement('video');
-      video.preload='metadata';
-
-      video.onloadedmetadata=()=>{
-        if(!Number.isFinite(video.duration)||video.duration<=0){
-          reject(new Error('Durasi video tidak valid.'));
-        }else{
-          resolve(video.duration);
-        }
-      };
-
-      video.onerror=()=>{
-        reject(new Error('Browser tidak dapat membaca video.'));
-      };
-
-      objectUrl=URL.createObjectURL(file);
-
 const duration=await new Promise((resolve,reject)=>{
   const video=document.createElement('video');
 
-  video.preload='auto';
+  video.preload='metadata';
   video.muted=true;
 
   video.onloadedmetadata=()=>{
@@ -1503,7 +1485,7 @@ const duration=await new Promise((resolve,reject)=>{
 
   video.onerror=()=>{
     reject(new Error(
-      'Browser gagal membaca metadata. Coba gunakan video MP4.'
+      'Browser gagal membaca video. Coba gunakan MP4.'
     ));
   };
 
@@ -1669,9 +1651,10 @@ uploadButton.disabled=true;
       .eq('id',selectedSeries)
       .single();
 
-    if(result.error)
-      return msg('splitUploadStatus','Gagal mengambil serial: '+result.error.message);
-
+    if(result.error){
+  uploadButton.disabled=false;
+  return msg('splitUploadStatus','Gagal mengambil serial: '+result.error.message);
+}
     series=result.data;
 
   }else{
