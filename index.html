@@ -1461,49 +1461,19 @@ document.getElementById('splitStart').onclick=async()=>{
   button.disabled=true;
   results.innerHTML='';
 
-  const input='input.mp4';
-  let objectUrl=null;
+  const ext=/\.webm$/i.test(file.name)?'webm':'mp4';
+const input='input.'+ext;
 
-  try{
-    status.textContent='Memeriksa durasi video...';
+try{
+  status.textContent='Menyiapkan video untuk FFmpeg...';
 
-    objectUrl=URL.createObjectURL(file);
+  const buffer=await file.arrayBuffer();
 
-const duration=await new Promise((resolve,reject)=>{
-  const video=document.createElement('video');
-
-  video.preload='metadata';
-  video.muted=true;
-
-  video.onloadedmetadata=()=>{
-    if(Number.isFinite(video.duration)&&video.duration>0){
-      resolve(video.duration);
-    }else{
-      reject(new Error('Durasi video tidak valid.'));
-    }
-  };
-
-  video.onerror=()=>{
-    reject(new Error(
-      'Browser gagal membaca video. Coba gunakan MP4.'
-    ));
-  };
-
-  video.src=objectUrl;
-  video.load();
-});
-
-URL.revokeObjectURL(objectUrl);
-objectUrl=null;
-
-
-    const count=Math.ceil(duration/120);
-
-    status.textContent='Menyiapkan '+count+' episode...';
-
-    const buffer=await file.arrayBuffer();
-
-    ffmpeg.FS('writeFile',input,new Uint8Array(buffer));
+  ffmpeg.FS(
+    'writeFile',
+    input,
+    new Uint8Array(buffer)
+  );
 
     
 
@@ -1596,8 +1566,6 @@ status.textContent=
     status.textContent='Gagal: '+error.message;
 
   }finally{
-    if(objectUrl)URL.revokeObjectURL(objectUrl);
-
     try{
       ffmpeg.FS('unlink',input);
     }catch(e){}
