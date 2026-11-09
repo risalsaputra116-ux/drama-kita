@@ -1388,122 +1388,50 @@ ffmpegTestButton.onclick=async()=>{
     ffmpegTestButton.disabled=false;
   }
 };
- </script><script>
+ </script>
+<script>
 const splitBox=document.createElement('div');
 
-splitBox.style.cssText='position:fixed;inset:0;background:#171722;color:white;z-index:99998;padding:20px;overflow:auto;display:none';
+splitBox.style.cssText=
+'position:fixed;inset:0;background:#171722;color:white;z-index:99998;padding:20px;overflow:auto;display:none';
 
 splitBox.innerHTML=`
 <h3>Uji Pemotongan Video</h3>
-<input id="splitVideo" type="file" accept="video/mp4">
-<button id="splitStart">Potong menjadi 2 menit</button>
+<input id="splitVideo" type="file" accept="video/mp4,video/webm">
+<button id="splitStart" class="btn">Potong menjadi 2 menit</button>
 <p id="splitStatus"></p>
 <div id="splitResults"></div>
-<button id="splitClose">Tutup</button>
+<button id="splitClose" class="btn alt">Tutup</button>
 `;
 
 document.body.appendChild(splitBox);
 
 const splitOpen=document.createElement('button');
+
 splitOpen.textContent='Uji Potong Video MP4';
-splitOpen.style.cssText='position:fixed;bottom:90px;left:10px;right:10px;padding:14px;background:#168b65;color:white;border:0;border-radius:10px;z-index:100001;display:block';
+
+splitOpen.style.cssText=
+'position:fixed;bottom:90px;left:10px;right:10px;padding:14px;background:#168b65;color:white;border:0;border-radius:10px;z-index:100001';
+
 document.body.appendChild(splitOpen);
 
-splitOpen.onclick=()=>splitBox.style.display='block';
-document.getElementById('splitClose').onclick=()=>splitBox.style.display='none';
-document.getElementById('splitStart').onclick=async()=>{
-  const file=document.getElementById('splitVideo').files[0];
-  const status=document.getElementById('splitStatus');
-  const results=document.getElementById('splitResults');
-  const button=document.getElementById('splitStart');
-  const ffmpeg=window.dramaFFmpeg;
+splitOpen.onclick=()=>{
+  splitBox.style.display='block';
+};
 
-  if(!file)return status.textContent='Pilih video MP4 dahulu.';
-  if(!ffmpeg)return status.textContent='Jalankan Uji Mesin FFmpeg dahulu.';
-
-  button.disabled=true;
-  results.innerHTML='';
-
-  const input='input.mp4';
-
-  try{
-    status.textContent='Membaca file video...';
-
-    const buffer=await new Promise((resolve,reject)=>{
-      const reader=new FileReader();
-
-      reader.onload=()=>resolve(reader.result);
-      reader.onerror=()=>reject(reader.error);
-
-      reader.readAsArrayBuffer(file);
-    });
-
-    status.textContent='Memasukkan video ke FFmpeg...';
-
-    ffmpeg.FS(
-      'writeFile',
-      input,
-      new Uint8Array(buffer)
-    );
-
-    status.textContent='Memeriksa durasi video...';
-
-    let ffmpegLog='';
-
-    ffmpeg.setLogger(({message})=>{
-      ffmpegLog+=message+'\n';
-    });
-
-    try{
-  await ffmpeg.run('-i',input);
-}catch(e){
-  console.log('FFmpeg selesai membaca informasi video.');
-}
-
-    const match=ffmpegLog.match(
-      /Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/
-    );
-
-    if(!match){
-      throw new Error('Durasi video tidak ditemukan.');
-    }
-
-    const duration=
-      Number(match[1])*3600+
-      Number(match[2])*60+
-      Number(match[3]);
-
-    const count=Math.ceil(duration/120);
-
-    for(let i=0;i<count;i++){
-      const start=i*120;
-      const output='episode_'+(i+1)+'.mp4';
-
-      status.textContent=
-        'Memotong episode '+(i+1)+' dari '+count+'...';
-
-      try{
-        await ffmpeg.run(
-          '-ss',String(start),
-          '-i',input,
-          '-t','120',
-          '-c','copy',
-          '-movflags','+faststart',
-          output
-        );
-      }catch(e){
-        if(!String(e).includes('exit(0)')){
-          throw e;
+document.getElementById('splitClose').onclick=()=>{
+  splitBox.style.display='none';
+};
 
 document.getElementById('splitStart').onclick=async()=>{
-  const file=document.getElementById('splitVideo').files[0];
-  const status=document.getElementById('splitStatus');
-  const results=document.getElementById('splitResults');
-  const button=document.getElementById('splitStart');
+  const file=$('splitVideo').files[0];
+  const status=$('splitStatus');
+  const results=$('splitResults');
+  const button=$('splitStart');
   const ffmpeg=window.dramaFFmpeg;
 
   if(!file){
-    status.textContent='Pilih video MP4 dahulu.';
+    status.textContent='Pilih video dahulu.';
     return;
   }
 
@@ -1513,7 +1441,7 @@ document.getElementById('splitStart').onclick=async()=>{
   }
 
   if(!['video/mp4','video/webm'].includes(file.type)){
-    status.textContent='Gunakan video MP4 atau WebM.';
+    status.textContent='Gunakan MP4 atau WebM.';
     return;
   }
 
@@ -1521,27 +1449,23 @@ document.getElementById('splitStart').onclick=async()=>{
   results.innerHTML='';
 
   const input='input.mp4';
-  let duration=0;
   let objectUrl=null;
 
   try{
-
     status.textContent='Memeriksa durasi video...';
 
     objectUrl=URL.createObjectURL(file);
 
-    duration=await new Promise((resolve,reject)=>{
+    const duration=await new Promise((resolve,reject)=>{
       const video=document.createElement('video');
-
       video.preload='metadata';
 
       video.onloadedmetadata=()=>{
         if(!Number.isFinite(video.duration)||video.duration<=0){
           reject(new Error('Durasi video tidak valid.'));
-          return;
+        }else{
+          resolve(video.duration);
         }
-
-        resolve(video.duration);
       };
 
       video.onerror=()=>{
@@ -1556,30 +1480,20 @@ document.getElementById('splitStart').onclick=async()=>{
 
     const count=Math.ceil(duration/120);
 
-    status.textContent=
-      'Durasi '+Math.floor(duration)+' detik. Menyiapkan '+count+' episode...';
+    status.textContent='Menyiapkan '+count+' episode...';
 
     const buffer=await file.arrayBuffer();
 
-    status.textContent='Memasukkan video ke FFmpeg...';
-
-    ffmpeg.FS(
-      'writeFile',
-      input,
-      new Uint8Array(buffer)
-    );
+    ffmpeg.FS('writeFile',input,new Uint8Array(buffer));
 
     for(let i=0;i<count;i++){
-
       const start=i*120;
       const length=Math.min(120,duration-start);
       const output='episode_'+(i+1)+'.mp4';
 
-      status.textContent=
-        'Memotong episode '+(i+1)+' dari '+count+'...';
+      status.textContent='Memproses episode '+(i+1)+' dari '+count+'...';
 
       try{
-
         await ffmpeg.run(
           '-ss',String(start),
           '-i',input,
@@ -1591,55 +1505,40 @@ document.getElementById('splitStart').onclick=async()=>{
           '-movflags','+faststart',
           output
         );
-
       }catch(error){
-
         const files=ffmpeg.FS('readdir','/');
 
         if(!files.includes(output)){
-          throw new Error(
-            'FFmpeg gagal membuat episode '+(i+1)+': '+error.message
-          );
+          throw new Error('Gagal membuat episode '+(i+1)+': '+error.message);
         }
       }
 
       const files=ffmpeg.FS('readdir','/');
 
       if(!files.includes(output)){
-        throw new Error(
-          'Episode '+(i+1)+' tidak berhasil dibuat.'
-        );
+        throw new Error('Episode '+(i+1)+' tidak berhasil dibuat.');
       }
 
       const data=ffmpeg.FS('readFile',output);
 
-      if(!data || data.length===0){
-        throw new Error(
-          'Episode '+(i+1)+' kosong.'
-        );
+      if(!data||data.length===0){
+        throw new Error('Episode '+(i+1)+' kosong.');
       }
 
-      const blob=new Blob(
-        [data],
-        {type:'video/mp4'}
-      );
-
+      const blob=new Blob([data],{type:'video/mp4'});
       const url=URL.createObjectURL(blob);
 
       const item=document.createElement('div');
-      item.style.cssText=
-        'background:#29243a;padding:12px;border-radius:10px;margin:10px 0';
+      item.className='status';
 
       const label=document.createElement('p');
-      label.textContent=
-        'Episode '+(i+1)+' · '+Math.ceil(length)+' detik';
+      label.textContent='Episode '+(i+1)+' · '+Math.ceil(length)+' detik';
 
       const link=document.createElement('a');
       link.href=url;
       link.download=output;
-      link.textContent='⬇ Download Episode '+(i+1);
-      link.style.cssText=
-        'display:block;color:#ff79a0;font-weight:bold;padding:10px 0';
+      link.textContent='Download Episode '+(i+1);
+      link.style.color='#ff79a0';
 
       item.append(label,link);
       results.appendChild(item);
@@ -1647,21 +1546,14 @@ document.getElementById('splitStart').onclick=async()=>{
       ffmpeg.FS('unlink',output);
     }
 
-    status.textContent=
-      'Selesai! '+count+' episode berhasil dibuat.';
+    status.textContent='Selesai! '+count+' episode berhasil dibuat.';
 
   }catch(error){
-
     console.error(error);
-
-    status.textContent=
-      'Gagal: '+error.message;
+    status.textContent='Gagal: '+error.message;
 
   }finally{
-
-    if(objectUrl){
-      URL.revokeObjectURL(objectUrl);
-    }
+    if(objectUrl)URL.revokeObjectURL(objectUrl);
 
     try{
       ffmpeg.FS('unlink',input);
