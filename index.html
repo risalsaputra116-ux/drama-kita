@@ -1366,10 +1366,10 @@ init();
  <script>
 const ffmpegTestButton=document.createElement('button');
 ffmpegTestButton.textContent='Uji Mesin FFmpeg';
-ffmpegTestButton.style.cssText='position:fixed;bottom:15px;left:10px;right:10px;padding:14px;background:#7045ff;color:white;border:0;border-radius:10px;z-index:99999';
+ffmpegTestButton.style.cssText=
+'display:inline-block;padding:8px 12px;margin:5px;font-size:12px;background:#7045ff;color:white;border:0;border-radius:8px';
 
-document.body.appendChild(ffmpegTestButton);
-
+document.getElementById('creator').prepend(ffmpegTestButton);
 ffmpegTestButton.onclick=async()=>{
   ffmpegTestButton.disabled=true;
   ffmpegTestButton.textContent='Memuat mesin FFmpeg...';
@@ -1421,9 +1421,9 @@ const splitOpen=document.createElement('button');
 splitOpen.textContent='Uji Potong Video MP4';
 
 splitOpen.style.cssText=
-'position:fixed;bottom:90px;left:10px;right:10px;padding:14px;background:#168b65;color:white;border:0;border-radius:10px;z-index:2147483647;display:block;visibility:visible;opacity:1';
+'display:inline-block;padding:8px 12px;margin:5px;font-size:12px;background:#168b65;color:white;border:0;border-radius:8px';
 
-document.body.appendChild(splitOpen);
+document.getElementById('creator').prepend(splitOpen);
 
 splitOpen.onclick=()=>{
   splitBox.style.display='block';
