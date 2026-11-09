@@ -1472,11 +1472,34 @@ document.getElementById('splitStart').onclick=async()=>{
         reject(new Error('Browser tidak dapat membaca video.'));
       };
 
-      video.src=objectUrl;
-    });
+      objectUrl=URL.createObjectURL(file);
 
-    URL.revokeObjectURL(objectUrl);
-    objectUrl=null;
+const duration=await new Promise((resolve,reject)=>{
+  const video=document.createElement('video');
+
+  video.preload='auto';
+  video.muted=true;
+
+  video.onloadedmetadata=()=>{
+    if(Number.isFinite(video.duration)&&video.duration>0){
+      resolve(video.duration);
+    }else{
+      reject(new Error('Durasi video tidak valid.'));
+    }
+  };
+
+  video.onerror=()=>{
+    reject(new Error(
+      'Browser gagal membaca metadata. Coba gunakan video MP4.'
+    ));
+  };
+
+  video.src=objectUrl;
+  video.load();
+});
+
+URL.revokeObjectURL(objectUrl);
+objectUrl=null;
 
     const count=Math.ceil(duration/120);
 
