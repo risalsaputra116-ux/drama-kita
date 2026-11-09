@@ -1369,7 +1369,7 @@ ffmpegTestButton.textContent='Uji Mesin FFmpeg';
 ffmpegTestButton.style.cssText=
 'display:inline-block;padding:8px 12px;margin:5px;font-size:12px;background:#7045ff;color:white;border:0;border-radius:8px';
 
-document.getElementById('creator').prepend(ffmpegTestButton);
+document.getElementById('upload').prepend(ffmpegTestButton);
 ffmpegTestButton.onclick=async()=>{
   ffmpegTestButton.disabled=true;
   ffmpegTestButton.textContent='Memuat mesin FFmpeg...';
@@ -1423,7 +1423,7 @@ splitOpen.textContent='Uji Potong Video MP4';
 splitOpen.style.cssText=
 'display:inline-block;padding:8px 12px;margin:5px;font-size:12px;background:#168b65;color:white;border:0;border-radius:8px';
 
-document.getElementById('creator').prepend(splitOpen);
+document.getElementById('upload').prepend(splitOpen);
 
 splitOpen.onclick=()=>{
   splitBox.style.display='block';
