@@ -1485,10 +1485,14 @@ const buffer=await new Promise((resolve,reject)=>{
   };
 
   reader.onerror=()=>{
-    reject(new Error(
-      'HP tidak dapat membaca file video. Coba pilih ulang dari penyimpanan internal.'
-    ));
-  };
+  const err=reader.error;
+
+  reject(new Error(
+    'Gagal membaca file: '+
+    (err?.name||'Error')+' - '+
+    (err?.message||'Penyebab tidak diketahui')
+  ));
+};
 
   reader.onabort=()=>{
     reject(new Error('Pembacaan video dibatalkan.'));
