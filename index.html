@@ -1400,6 +1400,27 @@ splitBox.style.cssText=
 
 splitBox.innerHTML=`
 <h3>Uji Pemotongan Video</h3>
+
+<label style="display:block;margin:12px 0;color:white">
+  Judul Serial
+  <input id="splitTitle" type="text"
+    placeholder="Masukkan judul serial"
+    style="width:100%;padding:12px;margin-top:6px">
+</label>
+
+<label style="display:block;margin:12px 0;color:white">
+  Sinopsis
+  <textarea id="splitSynopsis"
+    placeholder="Ceritakan sinopsis serial"
+    style="width:100%;padding:12px;margin-top:6px;min-height:90px"></textarea>
+</label>
+
+<label style="display:block;margin:12px 0;color:white">
+  Poster Serial
+  <input id="splitPoster" type="file"
+    accept="image/*"
+    style="width:100%;margin-top:8px">
+</label>
 <input id="splitVideo" type="file" accept="video/mp4,video/webm">
 <label style="display:flex;gap:8px;align-items:flex-start;margin:15px 0;color:white;font-size:13px">
   <input type="checkbox" id="splitRights" style="margin-top:3px">
@@ -1626,11 +1647,16 @@ if(!$('splitRights').checked){
     return;
   }
   
-    const selectedSeries=$('seriesSelect').value;
-  const title=$('title').value.trim();
-  const category=$('category').value;
-  const description=$('description').value.trim();
-  const startNo=Number($('episode').value);
+    const selectedSeries='';
+const title=$('splitTitle').value.trim();
+const category=$('category').value;
+const description=$('splitSynopsis').value.trim();
+const posterFile=$('splitPoster').files[0];
+const startNo=Number($('episode').value);
+
+if(!posterFile){
+  return msg('splitUploadStatus','Pilih poster serial terlebih dahulu.');
+}
 
   if(!selectedSeries&&!title){
     return msg('splitUploadStatus','Masukkan judul serial baru.');
@@ -1661,19 +1687,34 @@ uploadButton.disabled=true;
 
   }else{
     seriesId=crypto.randomUUID();
+    const posterExt=posterFile.name.split('.').pop().toLowerCase();
+const posterPath='series/'+user.id+'/'+seriesId+'.'+posterExt;
 
+const posterUpload=await sb.storage
+  .from(BUCKET)
+  .upload(posterPath,posterFile,{
+    upsert:true,
+    contentType:posterFile.type
+  });
+
+if(posterUpload.error){
+  uploadButton.disabled=false;
+  return msg('splitUploadStatus','Gagal mengunggah poster: '+posterUpload.error.message);
+}
     const result=await sb.from('drama_series')
       .insert({
         id:seriesId,
         creator_id:user.id,
         title,
         category,
-        description
+        description,
+       cover_path:posterPath
       })
       .select()
       .single();
 
     if(result.error){
+  await sb.storage.from(BUCKET).remove([posterPath]);
   uploadButton.disabled=false;
   return msg('splitUploadStatus','Gagal membuat serial: '+result.error.message);
     }
@@ -1723,7 +1764,7 @@ uploadButton.disabled=true;
         description:series.description,
         creator_id:user.id,
         video_path:videoPath,
-        cover_path:null,
+        cover_path:series.cover_path||null,
         status:'approved',
         rights_confirmed:true
       };
