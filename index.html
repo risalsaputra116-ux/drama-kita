@@ -95,18 +95,30 @@ style="width:120px;height:120px;object-fit:cover;border-radius:50%;display:block
   <h2 id="rewardBalance" style="color:#ff79a0;">Rp0</h2>
   <p class="hint">Total reward yang tercatat di akunmu.</p>
   <button class="btn" onclick="loadRewards()">Perbarui Saldo</button>
+ <h3 style="color:#70d6a0;">🎁 Saldo Reward Penonton</h3>
+<h2 id="viewerBalance" style="color:#70d6a0;">Rp0</h2>
+<p class="hint">Total reward dari menonton drama.</p>
+
+<button class="btn" type="button"
+  onclick="const box=document.getElementById('rewardHistoryBox');box.style.display=box.style.display==='none'?'block':'none';">
+  📜 Lihat Riwayat Reward
+</button>
+
+<div id="rewardHistoryBox" style="display:none;">
   <h4>Riwayat Reward</h4>
   <div id="rewardHistory">Belum ada reward.</div>
- <hr style="border-color:#ffffff22;margin:18px 0;">
+</div>
+ 
 
-<h3>💸 Tarik Saldo</h3>
+<hr style="border-color:#ffffff22;margin:18px 0;">
+
+<h3>💸 Tarik Saldo Kreator</h3>
 
 <label class="field">
   Jumlah penarikan (minimal Rp10.000)
-  <input id="withdrawAmount" type="number" min="10000"
-  placeholder="Contoh: 10000">
+  <input id="withdrawAmount" type="number"
+    min="10000" placeholder="Contoh: 10000">
 </label>
-
 
 <label class="field">
   Metode pembayaran
@@ -119,29 +131,25 @@ style="width:120px;height:120px;object-fit:cover;border-radius:50%;display:block
   </select>
 </label>
 
-<label class="field" id="withdrawBankField" style="display:none">
-  Nama bank
-  <select id="withdrawBank">
-    <option value="">Pilih bank</option>
-    <option value="BCA">BCA</option>
-    <option value="BRI">BRI</option>
-    <option value="BNI">BNI</option>
-    <option value="Mandiri">Mandiri</option>
-    <option value="BTN">BTN</option>
-    <option value="BSI">BSI</option>
-    <option value="CIMB Niaga">CIMB Niaga</option>
-    <option value="Danamon">Danamon</option>
-    <option value="Permata">Permata</option>
-    <option value="SeaBank">SeaBank</option>
-    <option value="Bank Jago">Bank Jago</option>
-    <option value="Bank lainnya">Bank lainnya</option>
-  </select>
-</label>
+<div id="withdrawBankField" style="display:none;">
+  <label class="field">
+    Nama bank
+    <select id="withdrawBank">
+      <option value="">Pilih bank</option>
+      <option value="BCA">BCA</option>
+      <option value="BRI">BRI</option>
+      <option value="BNI">BNI</option>
+      <option value="Mandiri">Mandiri</option>
+      <option value="BSI">BSI</option>
+      <option value="CIMB Niaga">CIMB Niaga</option>
+    </select>
+  </label>
+</div>
 
 <label class="field">
   Nomor rekening / nomor e-wallet
   <input id="withdrawAccount" type="text"
-    placeholder="Masukkan nomor tujuan">
+    placeholder="Masukkan nomor rekening atau e-wallet">
 </label>
 
 <label class="field">
@@ -155,9 +163,27 @@ style="width:120px;height:120px;object-fit:cover;border-radius:50%;display:block
 </button>
 
 <div id="withdrawStatus" class="status"></div>
+
+<hr style="border-color:#ffffff22;margin:18px 0;">
+
+<button class="btn alt" type="button"
+  onclick="
+    const box=document.getElementById('myWithdrawalsBox');
+    const hidden=box.style.display==='none';
+    box.style.display=hidden?'block':'none';
+    this.textContent=hidden?'Sembunyikan Riwayat Penarikan':'📜 Lihat Riwayat Penarikan';
+  ">
+  📜 Lihat Riwayat Penarikan
+</button>
+
+<div id="myWithdrawalsBox" style="display:none;">
+  <h3>Riwayat Penarikan</h3>
+  <button class="btn" onclick="loadMyWithdrawals()">
+    Muat Riwayat
+  </button>
+  <div id="myWithdrawals">Belum dimuat.</div>
 </div>
  
-
 <p class="hint">
   Jangan bagikan password atau kunci rahasia Supabase.
   Aplikasi hanya menggunakan anon/publishable key.
@@ -215,20 +241,20 @@ Perhatian: Pastikan semua data benar. Jangan tutup halaman selama proses berlang
   <h2>Studio kreator</h2>
   <p class="hint">Status kiriman dan laporan konten milikmu.</p>
   <div id="mine"></div>
-
-  <div class="status">
-    <h3>📜 Riwayat Penarikan</h3>
-    <button class="btn" onclick="loadMyWithdrawals()">
-      Muat Riwayat
-    </button>
-    <div id="myWithdrawals">Belum dimuat.</div>
-  </div>
 </section>
- <section id="admin" class="view">
+
+<section id="admin" class="view">
   <h2>👑 Panel Pemilik DRAMA KITA</h2>
   <p class="hint">Pusat pengelolaan aplikasi.</p>
 
- 
+  <div class="status">
+    <h3>🎬 Moderasi Episode</h3>
+    <p class="hint">Periksa episode yang menunggu persetujuan sebelum ditayangkan.</p>
+    <button class="btn" onclick="loadAdminEpisodes()">
+      Muat Episode Menunggu
+    </button>
+    <div id="adminEpisodes">Belum dimuat.</div>
+  </div>
 
   <div class="status">
     <h3>👥 Daftar Kreator</h3>
@@ -246,6 +272,7 @@ Perhatian: Pastikan semua data benar. Jangan tutup halaman selama proses berlang
     <div id="adminWithdrawals">Belum dimuat.</div>
   </div>
 </section>
+ 
 </main>
 <nav><button class="active" data-v="home" onclick="go('home')"><b>⌂</b>Beranda</button><button data-v="upload" onclick="go('upload')"><b>＋</b>Upload</button><button data-v="creator" onclick="go('creator')"><b>▣</b>Studio</button><button id="adminNav" data-v="admin"
 onclick="go('admin')" style="display:none">
@@ -692,7 +719,8 @@ async function loadRewards(){
 
   $('rewardBalance').textContent =
     'Rp'+creatorBalance.toLocaleString('id-ID');
-
+     $('viewerBalance').textContent =
+  'Rp'+viewerBalance.toLocaleString('id-ID');
   $('rewardHistory').innerHTML =
     '<h3>Reward Kreator</h3>' +
     (rewards.data.length
@@ -1171,7 +1199,7 @@ $('uploadForm').addEventListener('submit',async e=>{
     creator_id:user.id,
     video_path:videoPath,
     cover_path:coverPath,
-    status:'approved',
+    status:'pending',
     rights_confirmed:true
   };
 
@@ -1750,8 +1778,8 @@ document.getElementById('splitStart').onclick=async()=>{
     return;
   }
   
-if(file.size>2*1024*1024*1024){
-  status.textContent='Ukuran video sumber maksimal 2 GB.';
+if(file.size > 1.5 * 1024 * 1024 * 1024){
+  status.textContent='Ukuran video sumber maksimal 1,5 GB.';
   return;
 }
  
@@ -2033,7 +2061,7 @@ if(posterUpload.error){
         creator_id:user.id,
         video_path:videoPath,
         cover_path:series.cover_path||null,
-        status:'approved',
+        status:'pending',
         rights_confirmed:true
       };
 
