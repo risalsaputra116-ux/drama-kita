@@ -645,10 +645,11 @@ async function loadProfile(){
     'https://placehold.co/120x120?text=Foto';
  }
  
+
 async function loadRewards(){
   if(!sb || !user)return;
 
-  const [rewards, withdrawals] = await Promise.all([
+  const [rewards, withdrawals, viewerRewards] = await Promise.all([
     sb.from('creator_rewards')
       .select('amount,reward_type,description,created_at')
       .eq('creator_id',user.id)
@@ -656,20 +657,24 @@ async function loadRewards(){
 
     sb.from('reward_withdrawals')
       .select('amount,status,created_at')
-      .eq('creator_id',user.id)
+      .eq('creator_id',user.id),
+
+    sb.from('viewer_rewards')
+      .select('amount,reward_type,description,created_at')
+      .eq('viewer_id',user.id)
+      .order('created_at',{ascending:false})
   ]);
 
-  if(rewards.error){
-    $('rewardHistory').textContent='Gagal memuat reward: '+rewards.error.message;
+  if(rewards.error || withdrawals.error || viewerRewards.error){
+    $('rewardHistory').textContent =
+      'Gagal memuat reward. Silakan coba lagi.';
+    console.warn(
+      rewards.error || withdrawals.error || viewerRewards.error
+    );
     return;
   }
 
-  if(withdrawals.error){
-    $('rewardHistory').textContent='Gagal memuat penarikan: '+withdrawals.error.message;
-    return;
-  }
-
-  const totalReward = rewards.data.reduce(
+  const totalCreator = rewards.data.reduce(
     (sum,item)=>sum+Number(item.amount),0
   );
 
@@ -677,19 +682,45 @@ async function loadRewards(){
     .filter(item=>['pending','approved','paid'].includes(item.status))
     .reduce((sum,item)=>sum+Number(item.amount),0);
 
-  const available = Math.max(0,totalReward-totalWithdrawn);
+  const creatorBalance = Math.max(
+    0,totalCreator-totalWithdrawn
+  );
+
+  const viewerBalance = viewerRewards.data.reduce(
+    (sum,item)=>sum+Number(item.amount),0
+  );
 
   $('rewardBalance').textContent =
-    'Rp'+available.toLocaleString('id-ID');
+    'Rp'+creatorBalance.toLocaleString('id-ID');
 
-  $('rewardHistory').innerHTML = rewards.data.length
-    ? rewards.data.map(item =>
-        '<div class="status">Rp'+Number(item.amount).toLocaleString('id-ID')+
-        ' · '+esc(item.reward_type || 'Reward')+
-        '<br>'+esc(item.description || '')+'</div>'
-      ).join('')
-    : 'Belum ada reward.';
-}
+  $('rewardHistory').innerHTML =
+    '<h3>Reward Kreator</h3>' +
+    (rewards.data.length
+      ? rewards.data.map(item =>
+          '<div class="status">Rp'+
+          Number(item.amount).toLocaleString('id-ID')+
+          ' · '+esc(item.reward_type || 'Reward')+
+          '<br>'+esc(item.description || '')+
+          '</div>'
+        ).join('')
+      : '<p>Belum ada reward kreator.</p>'
+    ) +
+    '<h3>Reward Penonton</h3>' +
+    '<div class="status"><strong>Saldo penonton: Rp'+
+    viewerBalance.toLocaleString('id-ID')+
+    '</strong></div>' +
+    (viewerRewards.data.length
+      ? viewerRewards.data.map(item =>
+          '<div class="status">Rp'+
+          Number(item.amount).toLocaleString('id-ID')+
+          ' · '+esc(item.reward_type || 'Reward')+
+          '<br>'+esc(item.description || '')+
+          '</div>'
+        ).join('')
+      : '<p>Belum ada reward penonton.</p>'
+    );
+ }
+ 
 async function requestWithdrawal(){
   if(!user)return alert('Silakan login dahulu.');
 
@@ -938,40 +969,62 @@ button.innerHTML=
     v.playsInline=true;
     v.autoplay=true;
 
-    let watchedSeconds=0;
-    let lastTime=0;
-    let rewardRecorded=false;
+    
+let lastRewardSync=0;
+let rewardSyncing=false;
+let rewardStarted=false;
 
-    v.addEventListener('seeking',()=>{
-      lastTime=v.currentTime;
-    });
+async function syncWatchReward(force=false){
+if(!user || (v.paused && !force) || v.seeking || rewardSyncing) return;
 
-    v.addEventListener('timeupdate',async()=>{
-      if(v.paused||v.seeking||rewardRecorded)return;
+  rewardSyncing=true;
 
-      const delta=v.currentTime-lastTime;
-      lastTime=v.currentTime;
-
-      if(delta>0&&delta<=1.5){
-        watchedSeconds+=delta;
+  try{
+    const {data,error}=await sb.rpc(
+      'record_episode_watch',
+      {
+        p_episode_id:x.id,
+        p_position:v.currentTime
       }
-      if(watchedSeconds<10||!user)return;
+    );
 
-      rewardRecorded=true;
-
-      const {data,error}=await sb.rpc(
-        'record_episode_view',
-        {p_episode_id:x.id}
-      );
-
-      if(error){
-        console.warn('Reward view:',error.message);
-      }else if(data===true){
-        console.log('Penayangan valid tercatat.');
+    if(error){
+      console.warn('Reward tontonan:',error.message);
+    }else if(data){
+      if(data.creator_reward>0 || data.viewer_reward>0){
+        console.log('Reward tontonan:',data);
         await loadRewards();
       }
-    });
+    }
+  }catch(err){
+    console.warn('Gagal mencatat reward:',err);
+  }finally{
+    rewardSyncing=false;
+  }
+}
 
+v.addEventListener('playing',()=>{
+  if(!rewardStarted){
+    rewardStarted=true;
+    lastRewardSync=Date.now();
+    syncWatchReward();
+  }
+});
+
+v.addEventListener('timeupdate',()=>{
+  if(
+    !v.paused &&
+    !v.seeking &&
+    Date.now()-lastRewardSync>=5000
+  ){
+    lastRewardSync=Date.now();
+    syncWatchReward();
+  }
+});
+
+v.addEventListener('pause',()=>{
+  syncWatchReward(true);
+});
     v.addEventListener('ended',()=>{
      console.log('Episode selesai:',x.episode_no);
   const episodes = window.currentSeriesEpisodes || [];
