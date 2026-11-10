@@ -1810,7 +1810,7 @@ document.getElementById('splitStart').onclick=async()=>{
     return;
   }
   
-if(file.size > 1.5 * 1024 * 1024 * 1024){
+if(file.size > 500 * 1024 * 1024 * 1024){
   status.textContent='Ukuran video sumber maksimal 1,5 GB.';
   return;
 }
@@ -1857,9 +1857,6 @@ ffmpeg.FS(
   input,
   new Uint8Array(buffer)
 );
-
-    
-
     // Bersihkan hasil pemotongan lama
     const oldFiles=ffmpeg.FS('readdir','/')
       .filter(name=>/^episode_\d{3}\.mp4$/.test(name));
