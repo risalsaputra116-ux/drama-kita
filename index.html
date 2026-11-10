@@ -1810,8 +1810,8 @@ document.getElementById('splitStart').onclick=async()=>{
     return;
   }
   
-if(file.size > 500 * 1024 * 1024 * 1024){
-  status.textContent='Ukuran video sumber maksimal 1,5 GB.';
+if(file.size > 500 * 1024 * 1024){
+  alert('Ukuran video maksimal 500 MB. Silakan potong video terlebih dahulu di HP jika ukurannya lebih besar.');
   return;
 }
  
@@ -1870,10 +1870,13 @@ ffmpeg.FS(
     // Jalankan satu perintah untuk seluruh episode
     await ffmpeg.run(
       '-i',input,
-      '-c:v','libx264',
-      '-preset','ultrafast',
-      '-force_key_frames','expr:gte(t,n_forced*120)',
-      '-c:a','aac',
+'-c:v','libx264',
+'-preset','ultrafast',
+'-b:v','2500k',
+'-maxrate','2800k',
+'-bufsize','5600k',
+'-force_key_frames','expr:gte(t,n_forced*120)',
+     
       '-b:a','128k',
       '-f','segment',
       '-segment_time','120',
@@ -1890,7 +1893,18 @@ ffmpeg.FS(
     if(outputs.length===0){
       throw new Error('FFmpeg tidak menghasilkan episode.');
     }
+     // Periksa ukuran setiap hasil potongan
+const MAX_SPLIT_SIZE = 50 * 1024 * 1024;
 
+for(const name of outputs){
+  const info = ffmpeg.FS('stat', name);
+
+  if(info.size > MAX_SPLIT_SIZE){
+    throw new Error(
+      name + ' melebihi batas 50 MB. Silakan gunakan video sumber dengan kualitas atau bitrate lebih rendah.'
+    );
+  }
+}
     // Tampilkan tombol download
      window.dramaSplitFiles=[];
     outputs.forEach((name,i)=>{
