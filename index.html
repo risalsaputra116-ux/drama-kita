@@ -1467,13 +1467,35 @@ const input='input.'+ext;
 try{
   status.textContent='Menyiapkan video untuk FFmpeg...';
 
-  const buffer=await file.arrayBuffer();
+  status.textContent='Membaca file video dari HP...';
 
-  ffmpeg.FS(
-    'writeFile',
-    input,
-    new Uint8Array(buffer)
-  );
+const buffer=await new Promise((resolve,reject)=>{
+  const reader=new FileReader();
+
+  reader.onload=()=>{
+    resolve(reader.result);
+  };
+
+  reader.onerror=()=>{
+    reject(new Error(
+      'HP tidak dapat membaca file video. Coba pilih ulang dari penyimpanan internal.'
+    ));
+  };
+
+  reader.onabort=()=>{
+    reject(new Error('Pembacaan video dibatalkan.'));
+  };
+
+  reader.readAsArrayBuffer(file);
+});
+
+status.textContent='Memasukkan video ke mesin FFmpeg...';
+
+ffmpeg.FS(
+  'writeFile',
+  input,
+  new Uint8Array(buffer)
+);
 
     
 
