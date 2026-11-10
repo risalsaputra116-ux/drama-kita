@@ -694,23 +694,29 @@ async function requestWithdrawal(){
   if(!user)return alert('Silakan login dahulu.');
 
   const amount = Number($('withdrawAmount').value);
-  const method = $('withdrawMethod').value;
-  const account = $('withdrawAccount').value.trim();
-  const name = $('withdrawName').value.trim();
+const method = $('withdrawMethod').value;
+const bank = method === 'Bank Transfer'
+  ? $('withdrawBank').value
+  : null;
+const account = $('withdrawAccount').value.trim();
+const name = $('withdrawName').value.trim();
 
   if(!Number.isInteger(amount) || amount < 10000)
     return msg('withdrawStatus','Minimal penarikan Rp10.000.');
 
   if(!account || !name)
-    return msg('withdrawStatus','Lengkapi nomor dan nama pemilik rekening.');
+  return msg('withdrawStatus','Lengkapi nomor dan nama pemilik rekening.');
 
+if(method === 'Bank Transfer' && !bank)
+  return msg('withdrawStatus','Pilih nama bank terlebih dahulu.');
   msg('withdrawStatus','Mengirim pengajuan...');
 
   const {data,error} = await sb.rpc('request_creator_withdrawal',{
-    p_amount:amount,
-    p_payment_method:method,
-    p_account_number:account,
-    p_account_name:name
+   p_amount:amount,
+   p_payment_method:method,
+   p_account_number:account,
+   p_account_name:name,
+   p_bank_name:bank
   });
 
   if(error)
@@ -720,6 +726,7 @@ async function requestWithdrawal(){
   $('withdrawAmount').value='';
   $('withdrawAccount').value='';
   $('withdrawName').value='';
+  $('withdrawBank').value='';
   await loadRewards();
 }
  async function uploadAvatar(){
@@ -1456,7 +1463,7 @@ function playYoutube(id){
 
   const {data,error}=await sb
     .from('reward_withdrawals')
-    .select('id,amount,payment_method,account_number,account_name,status,created_at')
+    .select('id,amount,payment_method,account_number,account_name,bank_name,status,created_at')
     .order('created_at',{ascending:false});
 
   if(error){
@@ -1477,11 +1484,12 @@ function playYoutube(id){
 
   const info=document.createElement('p');
   info.textContent=
-    'Rp'+Number(x.amount).toLocaleString('id-ID')+
-    ' · '+x.payment_method+
-    ' · '+x.account_name+
-    ' · '+x.account_number+
-    ' · Status: '+x.status;
+  'Rp'+Number(x.amount).toLocaleString('id-ID')+
+  ' · '+x.payment_method+
+  (x.payment_method==='Bank Transfer' ? ' · Bank: '+(x.bank_name||'-') : '')+
+  ' · '+x.account_name+
+  ' · '+x.account_number+
+  ' · Status: '+x.status;
 
   item.append(info);
 
