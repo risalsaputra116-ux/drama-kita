@@ -42,6 +42,8 @@
 <main>
 <section id="home" class="view active">
  <div class="hero"><small>KREATOR INDONESIA</small><h1>Cerita singkat.<br>Keseruan tanpa batas.</h1><p class="muted">Tonton drama yang sudah lolos moderasi atau bagikan karya milikmu.</p><button class="btn" onclick="go('account')">Gabung sebagai kreator</button></div>
+ <h3 id="historyTitle" style="display:none">▶ Lanjutkan Menonton</h3>
+<div id="watchHistory" class="grid"></div>
  <input id="q" class="search" placeholder="Cari judul atau kreator..." oninput="loadFeed()">
  <div class="chips" id="cats"></div><h3 id="feedTitle">Drama terbaru</h3><div id="feed" class="grid"></div>
 <h3>Drama China Sub Indo</h3>
@@ -105,9 +107,11 @@ style="width:120px;height:120px;object-fit:cover;border-radius:50%;display:block
   placeholder="Contoh: 10000">
 </label>
 
+
 <label class="field">
   Metode pembayaran
-  <select id="withdrawMethod">
+  <select id="withdrawMethod"
+    onchange="document.getElementById('withdrawBankField').style.display=this.value==='Bank Transfer'?'block':'none'">
     <option value="DANA">DANA</option>
     <option value="OVO">OVO</option>
     <option value="GoPay">GoPay</option>
@@ -115,16 +119,35 @@ style="width:120px;height:120px;object-fit:cover;border-radius:50%;display:block
   </select>
 </label>
 
+<label class="field" id="withdrawBankField" style="display:none">
+  Nama bank
+  <select id="withdrawBank">
+    <option value="">Pilih bank</option>
+    <option value="BCA">BCA</option>
+    <option value="BRI">BRI</option>
+    <option value="BNI">BNI</option>
+    <option value="Mandiri">Mandiri</option>
+    <option value="BTN">BTN</option>
+    <option value="BSI">BSI</option>
+    <option value="CIMB Niaga">CIMB Niaga</option>
+    <option value="Danamon">Danamon</option>
+    <option value="Permata">Permata</option>
+    <option value="SeaBank">SeaBank</option>
+    <option value="Bank Jago">Bank Jago</option>
+    <option value="Bank lainnya">Bank lainnya</option>
+  </select>
+</label>
+
 <label class="field">
   Nomor rekening / nomor e-wallet
   <input id="withdrawAccount" type="text"
-  placeholder="Masukkan nomor tujuan">
+    placeholder="Masukkan nomor tujuan">
 </label>
 
 <label class="field">
   Nama pemilik rekening
   <input id="withdrawName" type="text"
-  placeholder="Nama sesuai rekening">
+    placeholder="Nama sesuai rekening">
 </label>
 
 <button class="btn" onclick="requestWithdrawal()">
@@ -133,6 +156,8 @@ style="width:120px;height:120px;object-fit:cover;border-radius:50%;display:block
 
 <div id="withdrawStatus" class="status"></div>
 </div>
+ 
+
 <p class="hint">
   Jangan bagikan password atau kunci rahasia Supabase.
   Aplikasi hanya menggunakan anon/publishable key.
@@ -343,6 +368,120 @@ function go(v){
   fields.forEach(x=>$(x).disabled=true);
  }
 function msg(id,s){$(id).textContent=s}
+ // PENANDA EPISODE TERAKHIR DITONTON
+function watchProgressKey(episode){
+  const owner=user?.id||'guest';
+  const series=episode.series_id||('episode-'+episode.id);
+
+  return 'dramaKita:lastEpisode:'+owner+':'+series;
+}
+
+function saveLastWatched(episode){
+  try{
+    localStorage.setItem(
+      watchProgressKey(episode),
+      JSON.stringify({
+        episodeId:episode.id,
+        episodeNo:episode.episode_no,
+        updatedAt:Date.now()
+      })
+    );
+  }catch(error){
+    console.warn('Gagal menyimpan penanda:',error);
+  }
+}
+
+function getLastWatched(episode){
+  try{
+    const saved=localStorage.getItem(
+      watchProgressKey(episode)
+    );
+
+    return saved?JSON.parse(saved):null;
+  }catch(error){
+    return null;
+  }
+}
+ // TAMPILKAN RIWAYAT TERAKHIR DITONTON DI BERANDA
+async function renderWatchHistory(groups){
+  const box=$('watchHistory');
+  const heading=$('historyTitle');
+
+  box.innerHTML='';
+  heading.style.display='none';
+
+  for(const group of groups.values()){
+    const episodes=[...group.episodes].sort(
+      (a,b)=>Number(a.episode_no)-Number(b.episode_no)
+    );
+
+    if(!episodes.length)continue;
+
+    const saved=getLastWatched(episodes[0]);
+
+    if(!saved)continue;
+
+    const lastEpisode=episodes.find(
+      episode=>episode.id===saved.episodeId
+    );
+
+    if(!lastEpisode)continue;
+
+    const poster=episodes.find(
+      episode=>episode.cover_path
+    );
+
+    const card=document.createElement('article');
+    card.className='card';
+
+    const cover=document.createElement('div');
+    cover.className='cover';
+    cover.textContent='🎬';
+
+    if(poster){
+      const {data}=await sb.storage
+        .from(BUCKET)
+        .createSignedUrl(poster.cover_path,3600);
+
+      if(data?.signedUrl){
+        const img=document.createElement('img');
+        img.src=data.signedUrl;
+        img.alt=group.title;
+        cover.textContent='';
+        cover.append(img);
+      }
+    }
+
+    const info=document.createElement('div');
+    info.className='info';
+
+    const title=document.createElement('strong');
+    title.textContent=group.title;
+
+    const episodeInfo=document.createElement('small');
+    episodeInfo.textContent=
+      'Terakhir: Episode '+lastEpisode.episode_no;
+
+    const button=document.createElement('button');
+    button.className='btn';
+    button.style.width='100%';
+    button.style.marginTop='10px';
+    button.textContent='▶ Lanjutkan Menonton';
+
+    button.onclick=()=>{
+      window.currentSeriesEpisodes=episodes;
+      play(lastEpisode);
+    };
+
+    info.append(title,episodeInfo,button);
+    card.append(cover,info);
+    box.append(card);
+  }
+
+  if(box.children.length){
+    heading.style.display='block';
+  }
+}
 function initCats(){$('cats').innerHTML=categories.map(c=>`<button class="chip ${c===activeCategory?'active':''}" data-cat="${c}">${c}</button>`).join('');$('cats').querySelectorAll('button').forEach(b=>b.onclick=()=>{activeCategory=b.dataset.cat;initCats();loadFeed()})}
 function configured(){return SUPABASE_URL.startsWith('https://')&&!SUPABASE_URL.includes('PASTE_')&&SUPABASE_ANON_KEY.length>20&&!SUPABASE_ANON_KEY.includes('PASTE_')}
 async function init(){initCats();if(!configured()){msg('accountStatus','Backend belum dikonfigurasi. Ikuti README dan jalankan SQL schema terlebih dahulu.');$('feed').innerHTML='<div class="empty" style="grid-column:1/-1">Backend belum tersambung. Aplikasi siap dikonfigurasi dengan Supabase.</div>';return}
@@ -658,7 +797,7 @@ async function loadFeed(){
 
     groups.get(key).episodes.push(x);
   });
-
+  await renderWatchHistory(groups);
   for(const group of groups.values()){
     group.episodes.sort((a,b)=>Number(a.episode_no)-Number(b.episode_no));
 
@@ -725,9 +864,17 @@ window.currentSeriesEpisodes.forEach((episode)=>{
     button.style.borderRadius='12px';
     button.style.textAlign='left';
 
-    button.innerHTML=
-      '<span>Episode '+episode.episode_no+'</span>'+
-      '<span>▶ Putar</span>';
+    const saved=getLastWatched(episode);
+
+const marker=
+  saved?.episodeId===episode.id
+  ? ' ✓ Terakhir ditonton'
+  : '';
+
+button.innerHTML=
+  '<span>Episode '+episode.episode_no+
+  '<small style="display:block;color:#ff79a0">'+marker+'</small></span>'+
+  '<span>▶ Putar</span>';
 
     button.onclick=()=>play(episode);
 
@@ -737,6 +884,30 @@ window.currentSeriesEpisodes.forEach((episode)=>{
  }
  async function play(x){
   currentDrama=x;
+    // Simpan episode terakhir yang diputar
+  saveLastWatched(x);
+
+  // Perbarui penanda pada daftar episode
+  const episodes=window.currentSeriesEpisodes||[];
+  const buttons=$('episodeList').querySelectorAll('button');
+
+  episodes.forEach((episode,index)=>{
+    const button=buttons[index];
+    if(!button)return;
+
+    const sedangDiputar=episode.id===x.id;
+    const tersimpan=getLastWatched(episode);
+
+    const marker=sedangDiputar
+      ? '▶ Sedang ditonton'
+      : tersimpan?.episodeId===episode.id
+        ? '✓ Terakhir ditonton'
+        : '▶ Putar';
+
+    button.innerHTML=
+      '<span>Episode '+episode.episode_no+'</span>'+
+      '<span>'+marker+'</span>';
+  });
 
   $('watchTitle').textContent=x.title;
   $('watchMeta').textContent=
