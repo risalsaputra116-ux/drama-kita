@@ -988,7 +988,8 @@ $('videoArea').replaceChildren(v);
 
   $('watch').classList.add('open');
 }
-async function reportCurrent(){if(!user)return alert('Masuk untuk melaporkan konten.');const reason=prompt('Alasan laporan (hak cipta, kekerasan, spam, lainnya):');if(!reason)return;const {error}=await sb.from('reports').insert({episode_id:currentDrama.id,reporter_id:user.id,reason:reason.slice(0,500)});alert(error?'Laporan gagal: '+error.message:'Laporan terkirim. Terima kasih.')}
+async function reportCurrent(){
+ if(!user)return alert('Masuk untuk melaporkan konten.');const reason=prompt('Alasan laporan (hak cipta, kekerasan, spam, lainnya):');if(!reason)return;const {error}=await sb.from('reports').insert({episode_id:currentDrama.id,reporter_id:user.id,reason:reason.slice(0,500)});alert(error?'Laporan gagal: '+error.message:'Laporan terkirim. Terima kasih.')}
 $('uploadForm').addEventListener('submit',async e=>{
   e.preventDefault();
 
@@ -1509,7 +1510,8 @@ function playYoutube(id){
    
   box.append(item);
 });
-}async function processWithdrawal(id,status){
+}
+ async function processWithdrawal(id,status){
   const action=status==='approved'?'menyetujui':'menolak';
 
   if(!confirm('Yakin ingin '+action+' pengajuan penarikan ini?')){
@@ -1528,7 +1530,8 @@ function playYoutube(id){
 
   alert('Pengajuan berhasil diproses.');
   loadAdminWithdrawals();
-}async function loadMyWithdrawals(){
+}
+ async function loadMyWithdrawals(){
   if(!sb || !user){
     return alert('Silakan login dahulu.');
   }
@@ -1538,7 +1541,7 @@ function playYoutube(id){
 
   const {data,error}=await sb
     .from('reward_withdrawals')
-    .select('amount,payment_method,account_name,status,created_at')
+    .select('amount,payment_method,account_name,bank_name,status,created_at')
     .eq('creator_id',user.id)
     .order('created_at',{ascending:false});
 
@@ -1559,11 +1562,12 @@ function playYoutube(id){
     item.className='status';
 
     item.textContent=
-      'Rp'+Number(x.amount).toLocaleString('id-ID')+
-      ' · '+x.payment_method+
-      ' · '+x.account_name+
-      ' · Status: '+x.status+
-      ' · '+new Date(x.created_at).toLocaleDateString('id-ID');
+  'Rp'+Number(x.amount).toLocaleString('id-ID')+
+  ' · '+x.payment_method+
+  (x.payment_method==='Bank Transfer' ? ' · Bank: '+(x.bank_name||'-') : '')+
+  ' · '+x.account_name+
+  ' · Status: '+x.status+
+  ' · '+new Date(x.created_at).toLocaleDateString('id-ID');
 
     box.append(item);
   });
