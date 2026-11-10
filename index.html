@@ -1400,7 +1400,29 @@ splitBox.style.cssText=
 
 splitBox.innerHTML=`
 <h3>Uji Pemotongan Video</h3>
+<div style="background:#222331;padding:15px;border-radius:12px;margin:15px 0;color:white;font-size:14px;line-height:1.7">
 
+<strong>ℹ️ PETUNJUK CREATOR</strong>
+
+<p><strong>Cara memotong dan mengunggah video:</strong></p>
+
+<ol>
+  <li>Masukkan judul serial dan sinopsis.</li>
+  <li>Pilih poster serial dari HP.</li>
+  <li>Pilih video MP4 yang ingin dipotong.</li>
+  <li>Centang pernyataan kepemilikan atau izin video.</li>
+  <li>Tekan Potong menjadi 2 menit.</li>
+  <li>Tunggu sampai semua episode selesai diproses.</li>
+  <li>Tekan Upload Semua Episode ke DRAMA KITA.</li>
+</ol>
+
+<hr>
+
+<p style="color:#f5c76b">
+Perhatian: Pastikan semua data sudah benar. Jangan tutup halaman selama proses berlangsung.
+</p>
+
+</div>
 <label style="display:block;margin:12px 0;color:white">
   Judul Serial
   <input id="splitTitle" type="text"
@@ -1420,6 +1442,9 @@ splitBox.innerHTML=`
   <input id="splitPoster" type="file"
     accept="image/*"
     style="width:100%;margin-top:8px">
+</label>
+<label style="display:block;margin:15px 0;color:white">
+  Pilih Video MP4
 </label>
 <input id="splitVideo" type="file" accept="video/mp4,video/webm">
 <label style="display:flex;gap:8px;align-items:flex-start;margin:15px 0;color:white;font-size:13px">
