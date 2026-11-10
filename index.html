@@ -1696,10 +1696,12 @@ document.getElementById('splitStart').onclick=async()=>{
     status.textContent='Gunakan MP4 atau WebM.';
     return;
   }
-  if(file.size>1024*1024*1024){
-  status.textContent='Ukuran video sumber maksimal 1 GB.';
+  
+if(file.size>2*1024*1024*1024){
+  status.textContent='Ukuran video sumber maksimal 2 GB.';
   return;
-  }
+}
+ 
   button.disabled=true;
   results.innerHTML='';
 
