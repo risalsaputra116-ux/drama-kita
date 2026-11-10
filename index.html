@@ -1401,6 +1401,10 @@ splitBox.style.cssText=
 splitBox.innerHTML=`
 <h3>Uji Pemotongan Video</h3>
 <input id="splitVideo" type="file" accept="video/mp4,video/webm">
+<label style="display:flex;gap:8px;align-items:flex-start;margin:15px 0;color:white;font-size:13px">
+  <input type="checkbox" id="splitRights" style="margin-top:3px">
+  <span>Saya menyatakan bahwa video ini milik saya atau saya memiliki izin untuk menggunakannya.</span>
+</label>
 <button id="splitStart" class="btn">Potong menjadi 2 menit</button>
 <p id="splitStatus"></p>
 <div id="splitResults"></div>
@@ -1444,6 +1448,10 @@ document.getElementById('splitStart').onclick=async()=>{
     status.textContent='Pilih video dahulu.';
     return;
   }
+ if(!$('splitRights').checked){
+  status.textContent='Centang pernyataan hak video terlebih dahulu.';
+  return;
+ }
 
   if(!ffmpeg){
     status.textContent='Jalankan Uji Mesin FFmpeg dahulu.';
@@ -1606,9 +1614,9 @@ status.textContent=
     return msg('splitUploadStatus','Potong video terlebih dahulu.');
   }
 
-  if(!$('rights').checked){
-    return msg('splitUploadStatus','Centang pernyataan hak video terlebih dahulu.');
-  }
+if(!$('splitRights').checked){
+  return msg('splitUploadStatus','Centang persetujuan hak video pada halaman pemotongan terlebih dahulu.');
+}
 
   if(!confirm('Upload '+files.length+' episode sekaligus?')){
     return;
