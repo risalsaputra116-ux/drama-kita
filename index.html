@@ -138,6 +138,34 @@ style="width:120px;height:120px;object-fit:cover;border-radius:50%;display:block
   Aplikasi hanya menggunakan anon/publishable key.
 </p></section>
 <section id="upload" class="view">
+
+<div style="background:#222331;padding:15px;border-radius:12px;margin:15px 0;color:white;font-size:14px;line-height:1.7">
+
+<strong>ℹ️ PETUNJUK CREATOR</strong>
+
+<p><strong>Cara memotong dan mengunggah video:</strong></p>
+
+<ol>
+  <li>Tekan tombol Uji Mesin FFmpeg.</li>
+  <li>Tunggu sampai status mesin menunjukkan Siap.</li>
+  <li>Tekan Uji Potong Video MP4.</li>
+  <li>Masukkan judul serial dan sinopsis.</li>
+  <li>Pilih poster serial dari HP.</li>
+  <li>Pilih video MP4 yang ingin dipotong.</li>
+  <li>Centang persetujuan hak video.</li>
+  <li>Tekan Potong menjadi 2 menit.</li>
+  <li>Tunggu sampai semua episode selesai diproses.</li>
+  <li>Tekan Upload Semua Episode ke DRAMA KITA.</li>
+</ol>
+
+<hr>
+
+<p style="color:#f5c76b">
+Perhatian: Pastikan semua data benar. Jangan tutup halaman selama proses berlangsung.
+</p>
+
+</div>
+
  <h2>Upload episode</h2><div id="uploadAuth" class="notice">Masuk terlebih dahulu untuk mengunggah drama.</div><label class="field">
   Pilih serial drama
   <select id="seriesSelect" onchange="selectSeries()">
@@ -1400,29 +1428,7 @@ splitBox.style.cssText=
 
 splitBox.innerHTML=`
 <h3>Uji Pemotongan Video</h3>
-<div style="background:#222331;padding:15px;border-radius:12px;margin:15px 0;color:white;font-size:14px;line-height:1.7">
 
-<strong>ℹ️ PETUNJUK CREATOR</strong>
-
-<p><strong>Cara memotong dan mengunggah video:</strong></p>
-
-<ol>
-  <li>Masukkan judul serial dan sinopsis.</li>
-  <li>Pilih poster serial dari HP.</li>
-  <li>Pilih video MP4 yang ingin dipotong.</li>
-  <li>Centang pernyataan kepemilikan atau izin video.</li>
-  <li>Tekan Potong menjadi 2 menit.</li>
-  <li>Tunggu sampai semua episode selesai diproses.</li>
-  <li>Tekan Upload Semua Episode ke DRAMA KITA.</li>
-</ol>
-
-<hr>
-
-<p style="color:#f5c76b">
-Perhatian: Pastikan semua data sudah benar. Jangan tutup halaman selama proses berlangsung.
-</p>
-
-</div>
 <label style="display:block;margin:12px 0;color:white">
   Judul Serial
   <input id="splitTitle" type="text"
