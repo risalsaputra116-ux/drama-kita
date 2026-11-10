@@ -108,12 +108,8 @@ style="width:120px;height:120px;object-fit:cover;border-radius:50%;display:block
   <h4>Riwayat Reward</h4>
   <div id="rewardHistory">Belum ada reward.</div>
 </div>
- 
-
 <hr style="border-color:#ffffff22;margin:18px 0;">
-
 <h3>💸 Tarik Saldo Kreator</h3>
-
 <label class="field">
   Jumlah penarikan (minimal Rp10.000)
   <input id="withdrawAmount" type="number"
@@ -210,13 +206,10 @@ style="width:120px;height:120px;object-fit:cover;border-radius:50%;display:block
 </ol>
 
 <hr>
-
 <p style="color:#f5c76b">
 Perhatian: Pastikan semua data benar. Jangan tutup halaman selama proses berlangsung.
 </p>
-
 </div>
-
  <h2>Upload episode</h2><div id="uploadAuth" class="notice">Masuk terlebih dahulu untuk mengunggah drama.</div><label class="field">
   Pilih serial drama
   <select id="seriesSelect" onchange="selectSeries()">
@@ -242,11 +235,9 @@ Perhatian: Pastikan semua data benar. Jangan tutup halaman selama proses berlang
   <p class="hint">Status kiriman dan laporan konten milikmu.</p>
   <div id="mine"></div>
 </section>
-
 <section id="admin" class="view">
   <h2>👑 Panel Pemilik DRAMA KITA</h2>
   <p class="hint">Pusat pengelolaan aplikasi.</p>
-
   <div class="status">
     <h3>🎬 Moderasi Episode</h3>
     <p class="hint">Periksa episode yang menunggu persetujuan sebelum ditayangkan.</p>
@@ -255,7 +246,6 @@ Perhatian: Pastikan semua data benar. Jangan tutup halaman selama proses berlang
     </button>
     <div id="adminEpisodes">Belum dimuat.</div>
   </div>
-
   <div class="status">
     <h3>👥 Daftar Kreator</h3>
     <button class="btn" onclick="loadAdminCreators()">
@@ -263,7 +253,6 @@ Perhatian: Pastikan semua data benar. Jangan tutup halaman selama proses berlang
     </button>
     <div id="adminCreators">Belum dimuat.</div>
   </div>
-
   <div class="status">
     <h3>💸 Pengajuan Penarikan</h3>
     <button class="btn" onclick="loadAdminWithdrawals()">
@@ -272,7 +261,6 @@ Perhatian: Pastikan semua data benar. Jangan tutup halaman selama proses berlang
     <div id="adminWithdrawals">Belum dimuat.</div>
   </div>
 </section>
- 
 </main>
 <nav><button class="active" data-v="home" onclick="go('home')"><b>⌂</b>Beranda</button><button data-v="upload" onclick="go('upload')"><b>＋</b>Upload</button><button data-v="creator" onclick="go('creator')"><b>▣</b>Studio</button><button id="adminNav" data-v="admin"
 onclick="go('admin')" style="display:none">
@@ -284,12 +272,9 @@ onclick="go('admin')" style="display:none">
       <strong id="watchTitle">Drama</strong>
       <button class="btn alt" onclick="closeWatch()">Tutup</button>
     </div>
-
     <p id="watchMeta" class="hint"></p>
     <p id="watchDesc"></p>
-
     <div class="video" id="videoArea"></div>
-
     <div id="episodeList"></div>
   </div>
 </div>
@@ -327,6 +312,7 @@ function go(v){
   loadSeries();
  }
   if(v==='admin'){
+    loadAdminEpisodes();
     loadAdminCreators();
     loadAdminWithdrawals();
   }
@@ -652,6 +638,52 @@ async function checkAdminAccess(){
   });
 }
 
+async function moderateEpisode(episodeId, status){
+  if(!sb || !user){
+    return alert('Silakan login dahulu.');
+  }
+
+  const action = status === 'approved'
+    ? 'menyetujui'
+    : 'menolak';
+
+  if(!confirm('Yakin ingin ' + action + ' episode ini?')){
+    return;
+  }
+
+  let note = null;
+
+  if(status === 'rejected'){
+    note = prompt('Masukkan alasan penolakan episode:');
+
+    if(note === null) return;
+
+    if(!note.trim()){
+      return alert('Alasan penolakan wajib diisi.');
+    }
+  }
+
+  const {error} = await sb.rpc(
+    'admin_moderate_episode',
+    {
+      p_episode_id: episodeId,
+      p_status: status,
+      p_note: note
+    }
+  );
+
+  if(error){
+    alert('Moderasi gagal: ' + error.message);
+    return;
+  }
+
+  alert('Episode berhasil ' + (
+    status === 'approved' ? 'disetujui.' : 'ditolak.'
+  ));
+
+  await loadAdminEpisodes();
+ }
+ 
 async function loadProfile(){
   if(!sb || !user)return;
 
