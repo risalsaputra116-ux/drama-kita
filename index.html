@@ -2081,6 +2081,7 @@ status.textContent=
     button.disabled=false;
   }
 };
+
 document.getElementById('uploadAllSplit').onclick=async()=>{
   const files=window.dramaSplitFiles||[];
 
@@ -2100,10 +2101,8 @@ document.getElementById('uploadAllSplit').onclick=async()=>{
   const title=$('splitTitle').value.trim();
   const description=$('splitSynopsis').value.trim();
   const posterFile=$('splitPoster').files[0]||null;
-
-  // Sementara kategori mengikuti kategori serial manual.
   const category=$('splitCategory').value;
-const startNo=Number($('splitEpisodeNo').value);
+  const startNo=Number($('splitEpisodeNo').value);
 
   if(!selectedSeries&&!title){
     return msg('splitUploadStatus','Masukkan judul serial baru.');
@@ -2122,8 +2121,9 @@ const startNo=Number($('splitEpisodeNo').value);
   let posterPath=null;
 
   try{
-    msg('splitUploadStatus','Menyiapkan serial...');
+    msg('splitUploadStatus','Memeriksa serial...');
 
+    // 1. Jika kreator memilih serial yang sudah ada
     if(selectedSeries){
       const result=await sb.from('drama_series')
         .select('id,title,category,description,cover_path')
@@ -2138,46 +2138,85 @@ const startNo=Number($('splitEpisodeNo').value);
       series=result.data;
 
     }else{
-      if(!posterFile){
-        throw new Error('Pilih poster untuk serial baru.');
+
+      // 2. Cari serial dengan judul sama milik kreator ini
+      const {data:allSeries,error:searchError}=await sb
+        .from('drama_series')
+        .select('id,title,category,description,cover_path')
+        .eq('creator_id',user.id);
+
+      if(searchError){
+        throw new Error('Gagal mencari serial: '+searchError.message);
       }
 
-      seriesId=crypto.randomUUID();
+      const normalizedTitle=title.trim().toLocaleLowerCase();
 
-      const posterExt=posterFile.name.split('.').pop().toLowerCase();
-      posterPath='series/'+user.id+'/'+seriesId+'.'+posterExt;
+      const matches=(allSeries||[]).filter(item=>
+        item.title.trim().toLocaleLowerCase()===normalizedTitle
+      );
 
-      const posterUpload=await sb.storage
-        .from(BUCKET)
-        .upload(posterPath,posterFile,{
-          upsert:true,
-          contentType:posterFile.type
-        });
-
-      if(posterUpload.error){
-        throw new Error('Gagal mengunggah poster: '+posterUpload.error.message);
+      if(matches.length>1){
+        throw new Error(
+          'Ditemukan beberapa serial dengan judul sama. Pilih serial yang benar melalui pilihan serial.'
+        );
       }
 
-      const result=await sb.from('drama_series')
-        .insert({
-          id:seriesId,
-          creator_id:user.id,
-          title:title,
-          category:category,
-          description:description,
-          cover_path:posterPath
-        })
-        .select()
-        .single();
+      // 3. Jika sudah ada, gunakan serial lama
+      if(matches.length===1){
+        series=matches[0];
+        seriesId=series.id;
 
-      if(result.error){
-        await sb.storage.from(BUCKET).remove([posterPath]);
-        throw new Error('Gagal membuat serial: '+result.error.message);
+        msg(
+          'splitUploadStatus',
+          'Serial ditemukan. Episode akan ditambahkan ke '+series.title+'...'
+        );
+
+      }else{
+
+        // 4. Jika belum ada, buat serial baru
+        if(!posterFile){
+          throw new Error('Pilih poster untuk serial baru.');
+        }
+
+        seriesId=crypto.randomUUID();
+
+        const posterExt=posterFile.name.split('.').pop().toLowerCase();
+        posterPath='series/'+user.id+'/'+seriesId+'.'+posterExt;
+
+        const posterUpload=await sb.storage
+          .from(BUCKET)
+          .upload(posterPath,posterFile,{
+            upsert:false,
+            contentType:posterFile.type
+          });
+
+        if(posterUpload.error){
+          throw new Error('Gagal mengunggah poster: '+posterUpload.error.message);
+        }
+
+        const result=await sb.from('drama_series')
+          .insert({
+            id:seriesId,
+            creator_id:user.id,
+            title:title,
+            category:category,
+            description:description,
+            cover_path:posterPath
+          })
+          .select()
+          .single();
+
+        if(result.error){
+          await sb.storage.from(BUCKET).remove([posterPath]);
+          posterPath=null;
+          throw new Error('Gagal membuat serial: '+result.error.message);
+        }
+
+        series=result.data;
       }
-
-      series=result.data;
     }
 
+    // 5. Upload semua episode ke serial yang sama
     for(let i=0;i<files.length;i++){
       const video=files[i];
       const episodeNo=startNo+i;
@@ -2188,7 +2227,8 @@ const startNo=Number($('splitEpisodeNo').value);
 
       msg(
         'splitUploadStatus',
-        'Mengunggah episode '+(i+1)+' dari '+files.length+'...'
+        'Mengunggah episode '+(i+1)+' dari '+files.length+
+        ' ke '+series.title+'...'
       );
 
       const episodeId=crypto.randomUUID();
@@ -2203,7 +2243,9 @@ const startNo=Number($('splitEpisodeNo').value);
         });
 
       if(upload.error){
-        throw new Error('Upload episode '+episodeNo+' gagal: '+upload.error.message);
+        throw new Error(
+          'Upload episode '+episodeNo+' gagal: '+upload.error.message
+        );
       }
 
       const payload={
@@ -2224,7 +2266,9 @@ const startNo=Number($('splitEpisodeNo').value);
 
       if(ins.error){
         await sb.storage.from(BUCKET).remove([videoPath]);
-        throw new Error('Gagal menyimpan episode '+episodeNo+': '+ins.error.message);
+        throw new Error(
+          'Gagal menyimpan episode '+episodeNo+': '+ins.error.message
+        );
       }
 
       berhasil++;
@@ -2238,8 +2282,8 @@ const startNo=Number($('splitEpisodeNo').value);
 
     window.dramaSplitFiles=[];
 
-    if(typeof loadSeries==='function') await loadSeries();
-    if(typeof loadFeed==='function') await loadFeed();
+    if(typeof loadSeries==='function')await loadSeries();
+    if(typeof loadFeed==='function')await loadFeed();
 
   }catch(error){
     console.error(error);
