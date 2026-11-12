@@ -1757,37 +1757,74 @@ const splitBox=document.createElement('div');
 splitBox.style.cssText=
 'position:fixed;inset:0;background:#171722;color:white;z-index:99998;padding:20px;overflow:auto;display:none';
 
+
 splitBox.innerHTML=`
 <h3>Uji Pemotongan Video</h3>
 
 <label style="display:block;margin:12px 0;color:white">
-  Judul Serial
-  <input id="splitTitle" type="text"
-    placeholder="Masukkan judul serial"
+  Pilih Serial
+  <select id="splitSeriesSelect"
+    style="width:100%;padding:12px;margin-top:6px">
+    <option value="">+ Buat Serial Baru</option>
+  </select>
+</label>
+
+<div id="splitNewSeriesFields">
+
+  <label style="display:block;margin:12px 0;color:white">
+    Judul Serial
+    <input id="splitTitle" type="text"
+      placeholder="Masukkan judul serial"
+      style="width:100%;padding:12px;margin-top:6px">
+  </label>
+
+  <label style="display:block;margin:12px 0;color:white">
+    Sinopsis
+    <textarea id="splitSynopsis"
+      placeholder="Ceritakan sinopsis serial"
+      style="width:100%;padding:12px;margin-top:6px;min-height:90px"></textarea>
+  </label>
+
+  <label style="display:block;margin:12px 0;color:white">
+    Poster Serial
+    <input id="splitPoster" type="file"
+      accept="image/*"
+      style="width:100%;margin-top:8px">
+  </label>
+
+  <label style="display:block;margin:12px 0;color:white">
+    Kategori Serial
+    <select id="splitCategory"
+      style="width:100%;padding:12px;margin-top:6px">
+      <option>Romantis</option>
+      <option>Komedi</option>
+      <option>Horor</option>
+      <option>Drama keluarga</option>
+      <option>Aksi</option>
+      <option>Thriller</option>
+      <option>Inspirasi</option>
+    </select>
+  </label>
+
+</div>
+
+<label style="display:block;margin:12px 0;color:white">
+  Nomor Episode Awal
+  <input id="splitEpisodeNo" type="number"
+    min="1" value="1"
     style="width:100%;padding:12px;margin-top:6px">
 </label>
 
-<label style="display:block;margin:12px 0;color:white">
-  Sinopsis
-  <textarea id="splitSynopsis"
-    placeholder="Ceritakan sinopsis serial"
-    style="width:100%;padding:12px;margin-top:6px;min-height:90px"></textarea>
-</label>
-
-<label style="display:block;margin:12px 0;color:white">
-  Poster Serial
-  <input id="splitPoster" type="file"
-    accept="image/*"
-    style="width:100%;margin-top:8px">
-</label>
 <label style="display:block;margin:15px 0;color:white">
   Pilih Video MP4
 </label>
 <input id="splitVideo" type="file" accept="video/mp4,video/webm">
+
 <label style="display:flex;gap:8px;align-items:flex-start;margin:15px 0;color:white;font-size:13px">
   <input type="checkbox" id="splitRights" style="margin-top:3px">
   <span>Saya menyatakan bahwa video ini milik saya atau saya memiliki izin untuk menggunakannya.</span>
 </label>
+
 <button id="splitStart" class="btn">Potong menjadi 2 menit</button>
 <p id="splitStatus"></p>
 <div id="splitResults"></div>
@@ -1802,7 +1839,44 @@ splitBox.innerHTML=`
 `;
 
 document.body.appendChild(splitBox);
+(async()=>{
+ const splitSeriesSelect=document.getElementById('splitSeriesSelect');
+const splitNewSeriesFields=document.getElementById('splitNewSeriesFields');
 
+splitSeriesSelect.addEventListener('change',()=>{
+  if(splitSeriesSelect.value){
+    splitNewSeriesFields.style.display='none';
+  }else{
+    splitNewSeriesFields.style.display='block';
+  }
+});
+  const select=document.getElementById('splitSeriesSelect');
+  const status=document.getElementById('splitStatus');
+
+  if(!select) return;
+
+  if(!user){
+    status.textContent='Silakan masuk terlebih dahulu.';
+    return;
+  }
+
+  const {data,error}=await sb
+    .from('drama_series')
+    .select('id,title')
+    .eq('creator_id',user.id);
+
+  if(error){
+    status.textContent='Gagal memuat serial: '+error.message;
+    return;
+  }
+
+  (data||[]).forEach(series=>{
+    const option=document.createElement('option');
+    option.value=series.id;
+    option.textContent=series.title;
+    select.appendChild(option);
+  });
+})();
 const splitOpen=document.createElement('button');
 
 splitOpen.textContent='Uji Potong Video MP4';
@@ -2007,7 +2081,7 @@ status.textContent=
     button.disabled=false;
   }
 };
- document.getElementById('uploadAllSplit').onclick=async()=>{
+document.getElementById('uploadAllSplit').onclick=async()=>{
   const files=window.dramaSplitFiles||[];
 
   if(!sb||!user){
@@ -2018,22 +2092,19 @@ status.textContent=
     return msg('splitUploadStatus','Potong video terlebih dahulu.');
   }
 
-if(!$('splitRights').checked){
-  return msg('splitUploadStatus','Centang persetujuan hak video pada halaman pemotongan terlebih dahulu.');
-}
-
-  if(!confirm('Upload '+files.length+' episode sekaligus?')){
-    return;
+  if(!$('splitRights').checked){
+    return msg('splitUploadStatus','Centang persetujuan hak video terlebih dahulu.');
   }
-  
-    
-const selectedSeries=$('seriesSelect').value;
-const title=$('title').value.trim();
-const category=$('category').value;
-const description=$('description').value.trim();
-const posterFile=$('coverFile').files[0] || null;
-const startNo=Number($('episode').value);
-  
+
+  const selectedSeries=$('splitSeriesSelect').value;
+  const title=$('splitTitle').value.trim();
+  const description=$('splitSynopsis').value.trim();
+  const posterFile=$('splitPoster').files[0]||null;
+
+  // Sementara kategori mengikuti kategori serial manual.
+  const category=$('splitCategory').value;
+const startNo=Number($('splitEpisodeNo').value);
+
   if(!selectedSeries&&!title){
     return msg('splitUploadStatus','Masukkan judul serial baru.');
   }
@@ -2041,75 +2112,78 @@ const startNo=Number($('episode').value);
   if(!Number.isInteger(startNo)||startNo<1){
     return msg('splitUploadStatus','Nomor episode awal tidak valid.');
   }
-const uploadButton=$('uploadAllSplit');
-uploadButton.disabled=true;
+
+  const uploadButton=$('uploadAllSplit');
+  uploadButton.disabled=true;
+
   let seriesId=selectedSeries;
   let series=null;
-  let newSeries=false;
+  let berhasil=0;
+  let posterPath=null;
 
-  msg('splitUploadStatus','Menyiapkan serial...');
+  try{
+    msg('splitUploadStatus','Menyiapkan serial...');
 
-  if(selectedSeries){
-    const result=await sb.from('drama_series')
-      .select('id,title,category,description,cover_path')
-      .eq('id',selectedSeries)
-      .single();
+    if(selectedSeries){
+      const result=await sb.from('drama_series')
+        .select('id,title,category,description,cover_path')
+        .eq('id',selectedSeries)
+        .eq('creator_id',user.id)
+        .single();
 
-    if(result.error){
-  uploadButton.disabled=false;
-  return msg('splitUploadStatus','Gagal mengambil serial: '+result.error.message);
-}
-    series=result.data;
+      if(result.error){
+        throw new Error('Gagal mengambil serial: '+result.error.message);
+      }
 
-  }else{
-    seriesId=crypto.randomUUID();
-   if(!posterFile){
-  uploadButton.disabled=false;
-  return msg('splitUploadStatus','Pilih poster untuk serial baru.');
-   }
-    const posterExt=posterFile.name.split('.').pop().toLowerCase();
-const posterPath='series/'+user.id+'/'+seriesId+'.'+posterExt;
+      series=result.data;
 
-const posterUpload=await sb.storage
-  .from(BUCKET)
-  .upload(posterPath,posterFile,{
-    upsert:true,
-    contentType:posterFile.type
-  });
+    }else{
+      if(!posterFile){
+        throw new Error('Pilih poster untuk serial baru.');
+      }
 
-if(posterUpload.error){
-  uploadButton.disabled=false;
-  return msg('splitUploadStatus','Gagal mengunggah poster: '+posterUpload.error.message);
-}
-    const result=await sb.from('drama_series')
-      .insert({
-        id:seriesId,
-        creator_id:user.id,
-        title,
-        category,
-        description,
-       cover_path:posterPath
-      })
-      .select()
-      .single();
+      seriesId=crypto.randomUUID();
 
-    if(result.error){
-  await sb.storage.from(BUCKET).remove([posterPath]);
-  uploadButton.disabled=false;
-  return msg('splitUploadStatus','Gagal membuat serial: '+result.error.message);
+      const posterExt=posterFile.name.split('.').pop().toLowerCase();
+      posterPath='series/'+user.id+'/'+seriesId+'.'+posterExt;
+
+      const posterUpload=await sb.storage
+        .from(BUCKET)
+        .upload(posterPath,posterFile,{
+          upsert:true,
+          contentType:posterFile.type
+        });
+
+      if(posterUpload.error){
+        throw new Error('Gagal mengunggah poster: '+posterUpload.error.message);
+      }
+
+      const result=await sb.from('drama_series')
+        .insert({
+          id:seriesId,
+          creator_id:user.id,
+          title:title,
+          category:category,
+          description:description,
+          cover_path:posterPath
+        })
+        .select()
+        .single();
+
+      if(result.error){
+        await sb.storage.from(BUCKET).remove([posterPath]);
+        throw new Error('Gagal membuat serial: '+result.error.message);
+      }
+
+      series=result.data;
     }
 
-    series=result.data;
-    newSeries=true;
-  }
-    let berhasil=0;
-  try{
     for(let i=0;i<files.length;i++){
       const video=files[i];
       const episodeNo=startNo+i;
 
       if(video.size>50*1024*1024){
-        throw new Error('Episode '+(i+1)+' melebihi 50 MB.');
+        throw new Error('Episode '+episodeNo+' melebihi 50 MB.');
       }
 
       msg(
@@ -2118,7 +2192,6 @@ if(posterUpload.error){
       );
 
       const episodeId=crypto.randomUUID();
-
       const folder=user.id+'/'+seriesId+'/'+episodeId+'/';
       const videoPath=folder+'video.mp4';
 
@@ -2130,9 +2203,7 @@ if(posterUpload.error){
         });
 
       if(upload.error){
-        throw new Error(
-          'Upload episode '+episodeNo+' gagal: '+upload.error.message
-        );
+        throw new Error('Upload episode '+episodeNo+' gagal: '+upload.error.message);
       }
 
       const payload={
@@ -2153,10 +2224,7 @@ if(posterUpload.error){
 
       if(ins.error){
         await sb.storage.from(BUCKET).remove([videoPath]);
-
-        throw new Error(
-          'Gagal menyimpan episode '+episodeNo+': '+ins.error.message
-        );
+        throw new Error('Gagal menyimpan episode '+episodeNo+': '+ins.error.message);
       }
 
       berhasil++;
@@ -2170,11 +2238,8 @@ if(posterUpload.error){
 
     window.dramaSplitFiles=[];
 
-    if(typeof loadSeries==='function')
-      await loadSeries();
-
-    if(typeof loadFeed==='function')
-      await loadFeed();
+    if(typeof loadSeries==='function') await loadSeries();
+    if(typeof loadFeed==='function') await loadFeed();
 
   }catch(error){
     console.error(error);
@@ -2186,8 +2251,7 @@ if(posterUpload.error){
 
   }finally{
     uploadButton.disabled=false;
- }
+  }
 };
-
   </script></body></html>
 
