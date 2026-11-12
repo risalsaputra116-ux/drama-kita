@@ -279,7 +279,19 @@ onclick="go('admin')" style="display:none">
     <p id="watchMeta" class="hint"></p>
     <p id="watchDesc"></p>
     <div class="video" id="videoArea"></div>
-    <div id="episodeList"></div>
+
+<div style="margin:12px 0">
+  <button
+    class="btn alt"
+    id="reportButton"
+    onclick="reportCurrent()"
+    style="width:100%;"
+  >
+    🚩 Laporkan Konten
+  </button>
+</div>
+
+<div id="episodeList"></div>
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -986,6 +998,10 @@ button.innerHTML=
  }
  async function play(x){
   currentDrama=x;
+  const reportButton=$('reportButton');
+if(reportButton){
+  reportButton.style.display='block';
+}
     // Simpan episode terakhir yang diputar
   saveLastWatched(x);
 
@@ -1105,7 +1121,33 @@ $('videoArea').replaceChildren(v);
   $('watch').classList.add('open');
 }
 async function reportCurrent(){
- if(!user)return alert('Masuk untuk melaporkan konten.');const reason=prompt('Alasan laporan (hak cipta, kekerasan, spam, lainnya):');if(!reason)return;const {error}=await sb.from('reports').insert({episode_id:currentDrama.id,reporter_id:user.id,reason:reason.slice(0,500)});alert(error?'Laporan gagal: '+error.message:'Laporan terkirim. Terima kasih.')}
+  if(!sb)
+    return alert('Koneksi belum tersedia.');
+
+  if(!user)
+    return alert('Masuk untuk melaporkan konten.');
+
+  if(!currentDrama || !currentDrama.id)
+    return alert('Episode belum dipilih.');
+
+  const reason=prompt(
+    'Alasan laporan (hak cipta, kekerasan, spam, lainnya):'
+  );
+
+  if(!reason || !reason.trim())return;
+
+  const {error}=await sb.from('reports').insert({
+    episode_id:currentDrama.id,
+    reporter_id:user.id,
+    reason:reason.trim().slice(0,500)
+  });
+
+  alert(
+    error
+      ? 'Laporan gagal: '+error.message
+      : 'Laporan terkirim. Terima kasih.'
+  );
+ }
 $('uploadForm').addEventListener('submit',async e=>{
   e.preventDefault();
  
@@ -1505,11 +1547,20 @@ function playYoutube(id){
   document.getElementById('videoArea').innerHTML=
     '<iframe width="100%" height="250" src="https://www.youtube-nocookie.com/embed/'+id+'" allowfullscreen></iframe>';
   document.getElementById('watch').classList.add('open');
-}function closeWatch(){
+ }
+ function closeWatch(){
   $('watch').classList.remove('open');
   $('videoArea').innerHTML = '';
-  currentDrama = null;
- }async function loadAdminCreators(){
+  $('episodeList').innerHTML = '';
+
+  const reportButton=$('reportButton');
+  if(reportButton){
+    reportButton.style.display='none';
+  }
+
+  currentDrama=null;
+ }
+ async function loadAdminCreators(){
   if(!sb || !user)return alert('Silakan login dahulu.');
 
   const {data:admin,error:authError}=await sb.rpc('is_admin');
