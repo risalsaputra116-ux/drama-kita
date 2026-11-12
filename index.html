@@ -1432,43 +1432,19 @@ async function loadMine(){
 
   const newPaths={};
 
-  if(newVideo){
-    const path=x.creator_id+'/'+x.id+'/video-'+Date.now()+'-'+newVideo.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-    const {error}=await sb.storage.from(BUCKET).upload(path,newVideo);
-    if(error){
-      alert('Upload video gagal: '+error.message);
-      return;
-    }
-    newPaths.video_path=path;
-  }
-
-  if(newCover){
-    const path=x.creator_id+'/'+x.id+'/cover-'+Date.now()+'-'+newCover.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-    const {error}=await sb.storage.from(BUCKET).upload(path,newCover);
-    if(error){
-      alert('Upload cover gagal: '+error.message);
-      return;
-    }
-    newPaths.cover_path=path;
-  }
-
-  const {error:updateError}=await sb.from('episodes')
-    .update({
-      title:title.trim(),
-      episode_no:Number(episodeNo),
-      category:category.trim(),
-      description:description.trim(),
-      status:'approved',
-      rights_confirmed:true,
-      ...newPaths
-    })
-    .eq('id',id);
-
-  if(updateError){
-    alert('Gagal menyimpan perubahan: '+updateError.message);
+if(newVideo){
+  const path=x.creator_id+'/'+x.id+'/video-'+Date.now()+'-'+newVideo.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+  const {error}=await sb.storage.from(BUCKET).upload(path,newVideo);
+  if(error){
+    alert('Upload video gagal: '+error.message);
     return;
   }
-
+  newPaths.video_path=path;
+}
+if(updateError){
+  alert('Gagal menyimpan perubahan: '+updateError.message);
+  return;
+}
   const oldFiles=[];
   if(newVideo&&x.video_path)oldFiles.push(x.video_path);
   if(newCover&&x.cover_path)oldFiles.push(x.cover_path);
