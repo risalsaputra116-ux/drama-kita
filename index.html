@@ -1936,29 +1936,17 @@ try{
 
   status.textContent='Membaca file video dari HP...';
 
-const buffer=await new Promise((resolve,reject)=>{
-  const reader=new FileReader();
+let buffer;
 
-  reader.onload=()=>{
-    resolve(reader.result);
-  };
-
-  reader.onerror=()=>{
-  const err=reader.error;
-
-  reject(new Error(
-    'Gagal membaca file: '+
-    (err?.name||'Error')+' - '+
-    (err?.message||'Penyebab tidak diketahui')
-  ));
-};
-
-  reader.onabort=()=>{
-    reject(new Error('Pembacaan video dibatalkan.'));
-  };
-
-  reader.readAsArrayBuffer(file);
-});
+try {
+  buffer = await file.arrayBuffer();
+} catch (err) {
+  throw new Error(
+    'Gagal membaca video: ' +
+    (err?.name || 'Error') + ' - ' +
+    (err?.message || 'Penyebab tidak diketahui')
+  );
+}
 
 status.textContent='Memasukkan video ke mesin FFmpeg...';
 
@@ -1967,6 +1955,8 @@ ffmpeg.FS(
   input,
   new Uint8Array(buffer)
 );
+
+buffer = null;
     // Bersihkan hasil pemotongan lama
     const oldFiles=ffmpeg.FS('readdir','/')
       .filter(name=>/^episode_\d{3}\.mp4$/.test(name));
